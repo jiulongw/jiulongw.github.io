@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HITCON 2016 - Sharingan | jiulongw</title>
+<link rel="stylesheet" href="https://jiulongw.github.io/css/style.css">
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/styles/github.min.css">
+
+
+<section class="section">
+  <div class="container">
+    <nav class="nav">
+      <div class="nav-left">
+        <a class="nav-item" href="https://jiulongw.github.io"><h1 class="title is-4">jiulongw</h1></a>
+      </div>
+      <div class="nav-right">
+        <nav class="nav-item level is-mobile">
+          
+          <a class="level-item" href="https://github.com/jiulongw">
+            <span class="icon">
+              <i class="fa fa-github"></i>
+            </span>
+          </a>
+          
+          <a class="level-item" href="https://twitter.com/jiulongw">
+            <span class="icon">
+              <i class="fa fa-twitter"></i>
+            </span>
+          </a>
+          
+          <a class="level-item" href="/index.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+          </a>
+          
+        </nav>
+      </div>
+    </nav>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2 class="subtitle is-6">October 23, 2016</h2>
+    <h1 class="title">HITCON 2016 - Sharingan</h1>
+    <div class="content">
+      
+
+<h1 id="problem">Problem</h1>
+
+<blockquote>
+<p>Sharingan<br />
+38 Teams solved.</p>
+
+<p>Description<br />
+nc 52.197.160.186 31337<br />
+<a href="https://s3-ap-northeast-1.amazonaws.com/hitcon2016qual/sharingan.rb_20a3d2497ad0292d72b4796754c5585523b3e985">sharingan.rb</a></p>
+
+<p>Hint<br />
+None</p>
+</blockquote>
+
+<h1 id="solution">Solution</h1>
+
+<p>I started by playing around with the program locally.  It turns out to be a Go AI with very interesting rule: As soon
+as the white stone (me) tries to capture black stone (AI), so called &ldquo;Isanagi&rdquo; is activated.  As a result of &ldquo;Isanagi&rdquo;,
+that last capturing white stone turns black!  Other than this unfair rule, it is a very basic AI that plays pure
+<a href="https://en.wikipedia.org/wiki/Mirror_go">Mirror Go</a>.  If there&rsquo;s no way to mirror the last move, it randomly pick a
+valid move.</p>
+
+<p>At first I tried to apply some well known mirror go refutations but because of the Isanagi rule, they don&rsquo;t seem to work.
+It looks like there&rsquo;s no easy way to beat this simple AI unless there&rsquo;s fundamental flaw in the program.</p>
+
+<p>And there is.</p>
+
+<pre><code class="language-ruby">def main
+  brd = Array.new(N){Array.new(N){EMPTY}}
+  who = 0
+  loop do
+    color = color_of who
+    case who
+    when 0 then x, y = ai(brd, color)
+    when 1 then x, y = player(brd, color)
+    else 
+    end
+    next if x.nil?
+    brd[x][y] = color
+    if who == 1 and will_capture(brd, x, y, color)
+      puts &quot;Isanagi activated!&quot;
+      brd[x][y] = exchg(brd[x][y])
+    end
+    N.times do |a|
+      N.times do |b|
+        next if brd[a][b] == EMPTY || brd[a][b] == color
+        capture!(brd, a, b) if not alive?(brd, a, b, Set.new)
+      end
+    end
+    @last_x, @last_y = x, y
+    who ^= 1
+    show(brd) and flag if win(brd) # &lt;&lt;&lt; checks at every iteration
+  end
+end
+</code></pre>
+
+<p>It turns out the program checks the winning condition <em>at every iteration</em>.  It checks if there&rsquo;re more white stones
+than black stones right after the white stone&rsquo;s move, before the mirror happens.  This means if I can capture and remove
+two (because black takes first move) black stones in one move, it will show me the flag!</p>
+
+<p>That&rsquo;s easy enough.  Since AI simply mirror my move, I can pre-capture an area with three holes, put two black stones
+into them, and fill the last hole with white stone.  The Isanagi rule will turn the last white stone into black.  Because
+it is pre-captured, all three black stones will be removed.  In the last move, one white stone and two black stones were
+removed, temporarily leaving more white stones than black stones, and prints the flag.</p>
+
+<p>So the final solution:</p>
+
+<pre><code class="language-bash">$ print &quot;0 1\n1 1\n2 1\n3 1\n3 0\n18 18\n17 18\n2 0&quot; | nc 52.197.160.186 31337
+</code></pre>
+
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <aside><div id="disqus_thread"></div></aside>
+    <script type="text/javascript">
+      var disqus_shortname = 'jiulongw';
+      (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+      })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="container has-text-centered">
+    <p>&copy; <a href="https://jiulongw.github.io">Jiulong</a> 2016</p>
+  </div>
+</section>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/highlight.min.js"></script>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/languages/ruby.min.js"></script>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/languages/bash.min.js"></script>
+
+<script>hljs.initHighlightingOnLoad();</script>
+
+<script>
+!function(a,b,c,d,e,f,g){a.GoogleAnalyticsObject=e,a[e]=a[e]||function(){(a[e].q=a[e].q||[]).push(arguments)},a[e].l=1*new Date,f=b.createElement(c),g=b.getElementsByTagName(c)[0],f.async=1,f.src=d,g.parentNode.insertBefore(f,g)}(window,document,"script","//www.google-analytics.com/analytics.js","ga"),ga("create","UA-86115491-1","auto"),ga("send","pageview");
+</script>
+
+

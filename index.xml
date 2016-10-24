@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>jiulongw</title>
+    <link>https://jiulongw.github.io/index.xml</link>
+    <description>Recent content on jiulongw</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <copyright>&amp;copy; &lt;a href=&#34;https://jiulongw.github.io&#34;&gt;Jiulong&lt;/a&gt; 2016</copyright>
+    <lastBuildDate>Sun, 23 Oct 2016 20:49:57 -0700</lastBuildDate>
+    <atom:link href="https://jiulongw.github.io/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>HITCON 2016 - Sharingan</title>
+      <link>https://jiulongw.github.io/post/hitcon-2016-sharingan/</link>
+      <pubDate>Sun, 23 Oct 2016 20:49:57 -0700</pubDate>
+      
+      <guid>https://jiulongw.github.io/post/hitcon-2016-sharingan/</guid>
+      <description>
+
+&lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Sharingan&lt;br /&gt;
+38 Teams solved.&lt;/p&gt;
+
+&lt;p&gt;Description&lt;br /&gt;
+nc 52.197.160.186 31337&lt;br /&gt;
+&lt;a href=&#34;https://s3-ap-northeast-1.amazonaws.com/hitcon2016qual/sharingan.rb_20a3d2497ad0292d72b4796754c5585523b3e985&#34;&gt;sharingan.rb&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Hint&lt;br /&gt;
+None&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h1 id=&#34;solution&#34;&gt;Solution&lt;/h1&gt;
+
+&lt;p&gt;I started by playing around with the program locally.  It turns out to be a Go AI with very interesting rule: As soon
+as the white stone (me) tries to capture black stone (AI), so called &amp;ldquo;Isanagi&amp;rdquo; is activated.  As a result of &amp;ldquo;Isanagi&amp;rdquo;,
+that last capturing white stone turns black!  Other than this unfair rule, it is a very basic AI that plays pure
+&lt;a href=&#34;https://en.wikipedia.org/wiki/Mirror_go&#34;&gt;Mirror Go&lt;/a&gt;.  If there&amp;rsquo;s no way to mirror the last move, it randomly pick a
+valid move.&lt;/p&gt;
+
+&lt;p&gt;At first I tried to apply some well known mirror go refutations but because of the Isanagi rule, they don&amp;rsquo;t seem to work.
+It looks like there&amp;rsquo;s no easy way to beat this simple AI unless there&amp;rsquo;s fundamental flaw in the program.&lt;/p&gt;
+
+&lt;p&gt;And there is.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;def main
+  brd = Array.new(N){Array.new(N){EMPTY}}
+  who = 0
+  loop do
+    color = color_of who
+    case who
+    when 0 then x, y = ai(brd, color)
+    when 1 then x, y = player(brd, color)
+    else 
+    end
+    next if x.nil?
+    brd[x][y] = color
+    if who == 1 and will_capture(brd, x, y, color)
+      puts &amp;quot;Isanagi activated!&amp;quot;
+      brd[x][y] = exchg(brd[x][y])
+    end
+    N.times do |a|
+      N.times do |b|
+        next if brd[a][b] == EMPTY || brd[a][b] == color
+        capture!(brd, a, b) if not alive?(brd, a, b, Set.new)
+      end
+    end
+    @last_x, @last_y = x, y
+    who ^= 1
+    show(brd) and flag if win(brd) # &amp;lt;&amp;lt;&amp;lt; checks at every iteration
+  end
+end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;It turns out the program checks the winning condition &lt;em&gt;at every iteration&lt;/em&gt;.  It checks if there&amp;rsquo;re more white stones
+than black stones right after the white stone&amp;rsquo;s move, before the mirror happens.  This means if I can capture and remove
+two (because black takes first move) black stones in one move, it will show me the flag!&lt;/p&gt;
+
+&lt;p&gt;That&amp;rsquo;s easy enough.  Since AI simply mirror my move, I can pre-capture an area with three holes, put two black stones
+into them, and fill the last hole with white stone.  The Isanagi rule will turn the last white stone into black.  Because
+it is pre-captured, all three black stones will be removed.  In the last move, one white stone and two black stones were
+removed, temporarily leaving more white stones than black stones, and prints the flag.&lt;/p&gt;
+
+&lt;p&gt;So the final solution:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ print &amp;quot;0 1\n1 1\n2 1\n3 1\n3 0\n18 18\n17 18\n2 0&amp;quot; | nc 52.197.160.186 31337
+&lt;/code&gt;&lt;/pre&gt;
+</description>
+    </item>
+    
+  </channel>
+</rss>
