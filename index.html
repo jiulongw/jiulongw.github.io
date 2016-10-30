@@ -46,6 +46,30 @@
   <div class="container">
     
     <article>
+      <h2 class="subtitle is-6">October 29, 2016</h2>
+      <h1 class="title"><a href="https://jiulongw.github.io/post/hitcon-2016-hackpad/">HITCON 2016 - Hackpad</a></h1>
+      <div class="content">
+        Problem  Hackpad
+65 Teams solved.
+Description
+My site was hacked. The secret was leaked.
+hackpad.pcap.xz
+Hint
+None
+ Solution Load the pcap file in Wireshark. It contains series of HTTP requests. Most of the response codes are 500s with some 200s in between. Below are some examples.
+GET / 200 OK: encrypt(secret): 3ed2e01c1d1248125c67ac637384a22d997d9369c74c82abba4cc3b1bfc65f02... POST / msg=3ed2e01c1d1248125c67ac637384a22d997d9369c74c82abba4cc3b1bfc65f02... 200 OK: md5(decrypt(msg)) = e5d3583f3e05b9242a1933fd5d245200 POST / msg=000000000000000000000000000000ff997d9369c74c82abba4cc3b1bfc65f02 500 Internal Server Error POST / msg=000000000000000000000000000000fe997d9369c74c82abba4cc3b1bfc65f02 500 Internal Server Error POST / msg=000000000000000000000000000000fd997d9369c74c82abba4cc3b1bfc65f02 500 Internal Server Error .
+        
+        ...<a class="button is-link" href="https://jiulongw.github.io/post/hitcon-2016-hackpad/" style="height:28px">
+          Read more
+          <span class="icon is-small">
+            <i class="fa fa-angle-double-right"></i>
+          </span>
+        </a>
+        
+      </div>
+    </article>
+    
+    <article>
       <h2 class="subtitle is-6">October 23, 2016</h2>
       <h1 class="title"><a href="https://jiulongw.github.io/post/hitcon-2016-sharingan/">HITCON 2016 - Sharingan</a></h1>
       <div class="content">

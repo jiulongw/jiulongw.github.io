@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HITCON 2016 - Hackpad | jiulongw</title>
+<link rel="stylesheet" href="https://jiulongw.github.io/css/style.css">
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/styles/github.min.css">
+
+
+<section class="section">
+  <div class="container">
+    <nav class="nav">
+      <div class="nav-left">
+        <a class="nav-item" href="https://jiulongw.github.io"><h1 class="title is-4">jiulongw</h1></a>
+      </div>
+      <div class="nav-right">
+        <nav class="nav-item level is-mobile">
+          
+          <a class="level-item" href="https://github.com/jiulongw">
+            <span class="icon">
+              <i class="fa fa-github"></i>
+            </span>
+          </a>
+          
+          <a class="level-item" href="https://twitter.com/jiulongw">
+            <span class="icon">
+              <i class="fa fa-twitter"></i>
+            </span>
+          </a>
+          
+          <a class="level-item" href="/index.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+          </a>
+          
+        </nav>
+      </div>
+    </nav>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2 class="subtitle is-6">October 29, 2016</h2>
+    <h1 class="title">HITCON 2016 - Hackpad</h1>
+    <div class="content">
+      
+
+<h1 id="problem">Problem</h1>
+
+<blockquote>
+<p>Hackpad<br />
+65 Teams solved.</p>
+
+<p>Description<br />
+My site was hacked. The secret was leaked.<br />
+<a href="https://s3-ap-northeast-1.amazonaws.com/hitcon2016qual/hackpad.pcap.xz_968494cea2c29140ee5e63e37c19cff2254f0229">hackpad.pcap.xz</a></p>
+
+<p>Hint<br />
+None</p>
+</blockquote>
+
+<h1 id="solution">Solution</h1>
+
+<p>Load the pcap file in <a href="https://www.wireshark.org/">Wireshark</a>.  It contains series of HTTP requests.  Most
+of the response codes are 500s with some 200s in between.  Below are some examples.</p>
+
+<pre><code>GET /
+200 OK: encrypt(secret): 3ed2e01c1d1248125c67ac637384a22d997d9369c74c82abba4cc3b1bfc65f02...
+
+POST /
+msg=3ed2e01c1d1248125c67ac637384a22d997d9369c74c82abba4cc3b1bfc65f02...
+200 OK: md5(decrypt(msg)) = e5d3583f3e05b9242a1933fd5d245200
+
+POST /
+msg=000000000000000000000000000000ff997d9369c74c82abba4cc3b1bfc65f02
+500 Internal Server Error
+
+POST /
+msg=000000000000000000000000000000fe997d9369c74c82abba4cc3b1bfc65f02
+500 Internal Server Error
+
+POST /
+msg=000000000000000000000000000000fd997d9369c74c82abba4cc3b1bfc65f02
+500 Internal Server Error
+
+...
+
+POST /
+msg=67acd06f7f7b28762310ce1213fccb11997d9369c74c82abba4cc3b1bfc65f02
+200 OK: md5(decrypt(msg)) = d41d8cd98f00b204e9800998ecf8427e
+</code></pre>
+
+<p>It&rsquo;s pretty easy to guess what the server was doing:</p>
+
+<ol>
+<li>It returns encrypted message on GET request</li>
+<li>It decrypts the message in POST request and returns hash of plain message.</li>
+<li>However, if the encrypted message in the POST request was malformed, it returns 500 Internal Server Error.</li>
+</ol>
+
+<p>This is a typical <a href="https://en.wikipedia.org/wiki/Padding_oracle_attack">Padding Oracle Attack</a>.</p>
+
+<p>In CBC mode decryption: P<sub>i</sub> = D(C<sub>i</sub>) &oplus; C<sub>i-1</sub> where C<sub>0</sub> = IV.</p>
+
+<p>We know <code>67acd06f7f7b28762310ce1213fccb11997d9369c74c82abba4cc3b1bfc65f02</code> is a valid encrypted message, it&rsquo;s
+padding is <code>10101010101010101010101010101010</code>.  As a result:</p>
+
+<p>D(<code>997d9369c74c82abba4cc3b1bfc65f02</code>) &oplus; <code>67acd06f7f7b28762310ce1213fccb11</code> = <code>10101010101010101010101010101010</code></p>
+
+<p>P<sub>1</sub> = D(<code>997d9369c74c82abba4cc3b1bfc65f02</code>) &oplus; <code>3ed2e01c1d1248125c67ac637384a22d</code></p>
+
+<p>Let&rsquo;s give it a quick try.</p>
+
+<pre><code>&gt;&gt;&gt; a = 0x67acd06f7f7b28762310ce1213fccb11 ^ 0x10101010101010101010101010101010 ^ 0x3ed2e01c1d1248125c67ac637384a22d
+&gt;&gt;&gt; hex(a)[2:-1].decode('hex')
+'In cryptography,'
+</code></pre>
+
+<p>Well, seems like we&rsquo;re on the right track.  The rest is simply cutting the original encrypted messages into 16 bytes blocks
+and xor-ing it with the first block of every successful padding oracle attack result.</p>
+
+<p>You can use <code>strings hackpad.pcap | grep msg=</code> to extract all messages and do some pre-processing to get a list of
+succesful padding oracle attacks.</p>
+
+<pre><code>In cryptography,
+ a padding oracl
+e attack is an a
+ttack which is p
+erformed using t
+he padding of a 
+cryptographic me
+ssage.
+hitcon{H4
+cked by a de1ici
+0us pudding '3'}
+</code></pre>
+
+<p>Flag: <code>hitcon{H4cked by a de1ici0us pudding '3'}</code></p>
+
+<p>Credits to team member @jina.</p>
+
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <aside><div id="disqus_thread"></div></aside>
+    <script type="text/javascript">
+      var disqus_shortname = 'jiulongw';
+      (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+      })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="container has-text-centered">
+    <p>&copy; <a href="https://jiulongw.github.io">Jiulong</a> 2016</p>
+  </div>
+</section>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/highlight.min.js"></script>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/languages/ruby.min.js"></script>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/languages/bash.min.js"></script>
+
+<script>hljs.initHighlightingOnLoad();</script>
+
+<script>
+!function(a,b,c,d,e,f,g){a.GoogleAnalyticsObject=e,a[e]=a[e]||function(){(a[e].q=a[e].q||[]).push(arguments)},a[e].l=1*new Date,f=b.createElement(c),g=b.getElementsByTagName(c)[0],f.async=1,f.src=d,g.parentNode.insertBefore(f,g)}(window,document,"script","//www.google-analytics.com/analytics.js","ga"),ga("create","UA-86115491-1","auto"),ga("send","pageview");
+</script>
+
+
