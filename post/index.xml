@@ -16,7 +16,9 @@
       <pubDate>Sat, 29 Oct 2016 21:08:39 -0700</pubDate>
       
       <guid>https://jiulongw.github.io/post/hitcon-2016-hackpad/</guid>
-      <description>
+      <description>&lt;p&gt;In cryptography, a padding oracle attack is an attack which is performed using the padding of a cryptographic message.&lt;/p&gt;
+
+&lt;p&gt;&lt;/p&gt;
 
 &lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
 
@@ -75,6 +77,8 @@ msg=67acd06f7f7b28762310ce1213fccb11997d9369c74c82abba4cc3b1bfc65f02
 
 &lt;p&gt;In CBC mode decryption: P&lt;sub&gt;i&lt;/sub&gt; = D(C&lt;sub&gt;i&lt;/sub&gt;) &amp;oplus; C&lt;sub&gt;i-1&lt;/sub&gt; where C&lt;sub&gt;0&lt;/sub&gt; = IV.&lt;/p&gt;
 
+&lt;p&gt;&lt;img src=&#34;https://jiulongw.github.io/img/hitcon-2016-hackpad/cbc_decryption.png&#34; alt=&#34;CBC mode decryption&#34; /&gt;&lt;/p&gt;
+
 &lt;p&gt;We know &lt;code&gt;67acd06f7f7b28762310ce1213fccb11997d9369c74c82abba4cc3b1bfc65f02&lt;/code&gt; is a valid encrypted message, it&amp;rsquo;s
 padding is &lt;code&gt;10101010101010101010101010101010&lt;/code&gt;.  As a result:&lt;/p&gt;
 
@@ -110,8 +114,7 @@ cked by a de1ici
 
 &lt;p&gt;Flag: &lt;code&gt;hitcon{H4cked by a de1ici0us pudding &#39;3&#39;}&lt;/code&gt;&lt;/p&gt;
 
-&lt;p&gt;Credits to team member @jina.&lt;/p&gt;
-</description>
+&lt;p&gt;Credits to team member @jina.&lt;/p&gt;</description>
     </item>
     
     <item>
@@ -120,7 +123,9 @@ cked by a de1ici
       <pubDate>Sun, 23 Oct 2016 20:49:57 -0700</pubDate>
       
       <guid>https://jiulongw.github.io/post/hitcon-2016-sharingan/</guid>
-      <description>
+      <description>&lt;p&gt;It is no fair play.  Can you win?&lt;/p&gt;
+
+&lt;p&gt;&lt;/p&gt;
 
 &lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
 
@@ -190,8 +195,7 @@ removed, temporarily leaving more white stones than black stones, and prints the
 &lt;p&gt;So the final solution:&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ print &amp;quot;0 1\n1 1\n2 1\n3 1\n3 0\n18 18\n17 18\n2 0&amp;quot; | nc 52.197.160.186 31337
-&lt;/code&gt;&lt;/pre&gt;
-</description>
+&lt;/code&gt;&lt;/pre&gt;</description>
     </item>
     
   </channel>

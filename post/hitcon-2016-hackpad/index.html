@@ -47,7 +47,9 @@
     <h2 class="subtitle is-6">October 29, 2016</h2>
     <h1 class="title">HITCON 2016 - Hackpad</h1>
     <div class="content">
-      
+      <p>In cryptography, a padding oracle attack is an attack which is performed using the padding of a cryptographic message.</p>
+
+<p></p>
 
 <h1 id="problem">Problem</h1>
 
@@ -106,6 +108,8 @@ msg=67acd06f7f7b28762310ce1213fccb11997d9369c74c82abba4cc3b1bfc65f02
 
 <p>In CBC mode decryption: P<sub>i</sub> = D(C<sub>i</sub>) &oplus; C<sub>i-1</sub> where C<sub>0</sub> = IV.</p>
 
+<p><img src="/img/hitcon-2016-hackpad/cbc_decryption.png" alt="CBC mode decryption" /></p>
+
 <p>We know <code>67acd06f7f7b28762310ce1213fccb11997d9369c74c82abba4cc3b1bfc65f02</code> is a valid encrypted message, it&rsquo;s
 padding is <code>10101010101010101010101010101010</code>.  As a result:</p>
 
@@ -142,7 +146,6 @@ cked by a de1ici
 <p>Flag: <code>hitcon{H4cked by a de1ici0us pudding '3'}</code></p>
 
 <p>Credits to team member @jina.</p>
-
     </div>
   </div>
 </section>
