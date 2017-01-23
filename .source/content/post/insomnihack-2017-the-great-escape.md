@@ -4,6 +4,10 @@ title = "INSOMNIHACK 2017 - The Great Escape"
 
 +++
 
+Hey Rogue, here're some good links for your learning.
+
+<!--more-->
+
 # Problem
 
 > Hello,
@@ -39,7 +43,7 @@ of interesting packets caught my eyes:
 > I'll be checking this mail box every now and then if you have any information for me. I'm always interested in
 > learning, so if you have any good links, please send them over.
 
-The email suggests the pcap file might contain traffic between Rogue and the Swiss Secure Cloud (SSC) website.
+The email suggests the pcap file should contain packets between Rogue and the Swiss Secure Cloud (SSC) website.
 There are several TCP sessions related to SSC IP address.  However, these are SSL packets that are not readable unless
 I have server's private key.  But wait a minute, isn't it ssc.key in the FTP session?
 

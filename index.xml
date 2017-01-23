@@ -16,7 +16,9 @@
       <pubDate>Sun, 22 Jan 2017 17:41:36 -0800</pubDate>
       
       <guid>https://jiulongw.github.io/post/insomnihack-2017-the-great-escape/</guid>
-      <description>
+      <description>&lt;p&gt;Hey Rogue, here&amp;rsquo;re some good links for your learning.&lt;/p&gt;
+
+&lt;p&gt;&lt;/p&gt;
 
 &lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
 
@@ -59,7 +61,7 @@ to install my consciousness and have a real base of operations.&lt;/p&gt;
 learning, so if you have any good links, please send them over.&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;p&gt;The email suggests the pcap file might contain traffic between Rogue and the Swiss Secure Cloud (SSC) website.
+&lt;p&gt;The email suggests the pcap file should contain packets between Rogue and the Swiss Secure Cloud (SSC) website.
 There are several TCP sessions related to SSC IP address.  However, these are SSL packets that are not readable unless
 I have server&amp;rsquo;s private key.  But wait a minute, isn&amp;rsquo;t it ssc.key in the FTP session?&lt;/p&gt;
 
@@ -213,8 +215,7 @@ pbXE2Z21udXE1ZWpzMjkwdDA=
 &lt;p&gt;Decode it and the flag is right there.&lt;/p&gt;
 
 &lt;pre&gt;&lt;code&gt;:::INS{IhideMyVulnsWithCrypto}:::{&amp;quot;alg&amp;quot;:&amp;quot;RSA-OAEP-256&amp;quot;,&amp;quot;d&amp;quot;:&amp;quot;CFSPW_AU_cK07bOtdnzbj5MgBqd...
-&lt;/code&gt;&lt;/pre&gt;
-</description>
+&lt;/code&gt;&lt;/pre&gt;</description>
     </item>
     
     <item>
