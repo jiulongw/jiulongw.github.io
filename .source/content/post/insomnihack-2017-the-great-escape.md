@@ -1,6 +1,6 @@
 +++
 date = "2017-01-22T17:41:36-08:00"
-title = "INSOMNIHACK 2017 - The Great Escape"
+title = "INSOMNIHACK 2017 Teaser - The Great Escape"
 
 +++
 
@@ -10,6 +10,8 @@ Hey Rogue, here're some good links for your learning.
 
 # Problem
 
+> ## The Great Escape - Forensics - 50/200/200 pts - created by clZ
+>
 > Hello,
 >
 > We've been suspecting Swiss Secure Cloud of secretely doing some pretty advanced research in artifical intelligence

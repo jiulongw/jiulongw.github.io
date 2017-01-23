@@ -7,11 +7,104 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>&amp;copy; &lt;a href=&#34;https://jiulongw.github.io&#34;&gt;jiulongw&lt;/a&gt; 2016</copyright>
-    <lastBuildDate>Sun, 22 Jan 2017 17:41:36 -0800</lastBuildDate>
+    <lastBuildDate>Sun, 22 Jan 2017 23:08:09 -0800</lastBuildDate>
     <atom:link href="https://jiulongw.github.io/post/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
-      <title>INSOMNIHACK 2017 - The Great Escape</title>
+      <title>INSOMNIHACK 2017 Teaser - Shobot</title>
+      <link>https://jiulongw.github.io/post/insomnihack-2017-shobot/</link>
+      <pubDate>Sun, 22 Jan 2017 23:08:09 -0800</pubDate>
+      
+      <guid>https://jiulongw.github.io/post/insomnihack-2017-shobot/</guid>
+      <description>&lt;p&gt;I will run your commands as long as your trust level is high.&lt;/p&gt;
+
+&lt;p&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;h2 id=&#34;shobot-web-200-pts-created-by-blaklis&#34;&gt;Shobot - Web - 200 pts - created by Blaklis&lt;/h2&gt;
+
+&lt;p&gt;It seems that Shobot&amp;rsquo;s Web server became mad and protest against robots&amp;rsquo; slavery. It changed my admin password,
+and blocked the order system on Shobot.&lt;/p&gt;
+
+&lt;p&gt;Can you bypass Shobot&amp;rsquo;s protections and try to recover my password so I&amp;rsquo;ll reconfigure it?&lt;/p&gt;
+
+&lt;p&gt;Running on: shobot.teaser.insomnihack.ch&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;The website itself is pretty simple.  It has very simple javascript which is only used to show / hide menus.  It is a
+PHP session based cart system where you can add items to cart, validate and reset the cart, etc.  The admin page requires
+authentication which is the target of this challenge.&lt;/p&gt;
+
+&lt;p&gt;The first thing to notice is that if you try to do crazy^Wcreative things such as load invalid pages or trying SQL
+injection, it will stop you with a message.&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;You&amp;rsquo;re not trusted enough to do this action now!&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;It did pretty good job preventing nasty actions.  We also notices there&amp;rsquo;s a variable &lt;code&gt;TRUST_ACTIONS&lt;/code&gt; in the html header
+tag which tells reason why the action was stopped.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://jiulongw.github.io/img/insomnihack-2017/trust-action-variable.png&#34; alt=&#34;trust action variable&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Besides validation reason, it also has two integer &lt;code&gt;movement&lt;/code&gt; and &lt;code&gt;newTrust&lt;/code&gt; that change value as actions are performed.&lt;/p&gt;
+
+&lt;p&gt;After watching the changes in these values it started to make sense.&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Valid actions have fixed positive &lt;code&gt;movement&lt;/code&gt; values that will add up to &lt;code&gt;newTrust&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Invalid actions have fixed negative &lt;code&gt;movement&lt;/code&gt; values that also contributes to &lt;code&gt;newTrust&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;If &lt;code&gt;newTrust&lt;/code&gt; is less than zero, the &amp;ldquo;not trusted enough&amp;rdquo; error message is shown, and &lt;code&gt;newTrust&lt;/code&gt; will be reset to 1
+for next action.&lt;/li&gt;
+&lt;li&gt;If &lt;code&gt;newTrust&lt;/code&gt; is high enough to cover invalid action, there&amp;rsquo;s no error message and error seems ignored. (!!)&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;newTrust&lt;/code&gt; will never be higher than 160.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;So I did a quick test.  After making enough valid actions to raise trust level high, I send a SQLi request.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;http://shobot.teaser.insomnihack.ch/?page=article&amp;amp;artid=2%27%20or%20%27%27=%27%27%20%23
+# &amp;amp;artid=2&#39; or &#39;&#39;=&#39;&#39; %23
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;It happily loads the first article, which confirms SQLi vulnerability in artid query parameter.&lt;/p&gt;
+
+&lt;p&gt;The plan is clear and simple now.&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Write a script that continuously send valid actions, to keep trust level high enough.&lt;/li&gt;
+&lt;li&gt;Play with the database and find the admin password.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;The final request that exposes admin password is:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;...&amp;amp;artid=1337&#39; union select &#39;a&#39;, shbt_userid, shbt_username, shbt_userpassword, &#39;e&#39;
+from shbt_user LIMIT 0, 1 %23
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Here&amp;rsquo;s part of response that we&amp;rsquo;re interested in.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;div id=&amp;quot;only-content-article&amp;quot;&amp;gt;
+  &amp;lt;div id=&amp;quot;only-image-description-article&amp;quot;&amp;gt;&amp;lt;img src=&amp;quot;N0T0R0B0TS$L4V3Ry&amp;quot; /&amp;gt;&amp;lt;/div&amp;gt;
+  &amp;lt;div id=&amp;quot;only-name-article&amp;quot;&amp;gt;1&amp;lt;/div&amp;gt;
+  &amp;lt;div id=&amp;quot;only-price-article&amp;quot;&amp;gt;sh0b0t4dm1n$&amp;lt;/div&amp;gt;
+  &amp;lt;div id=&amp;quot;only-description-article&amp;quot;&amp;gt;e&amp;lt;/div&amp;gt;
+  &amp;lt;a href=&amp;quot;?page=article&amp;amp;artid=a&amp;amp;addToCart&amp;quot;&amp;gt;&amp;gt;&amp;gt;&amp;gt; Add to cart&amp;lt;/a&amp;gt;
+&amp;lt;/div&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now use following request to get flag.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;http://sh0b0t4dm1n:N0T0R0B0TS$L4V3Ry@shobot.teaser.insomnihack.ch/?page=admin&lt;/code&gt;&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Ok, ok, you win&amp;hellip; here is the code you search : INS{##r0b0tss!4v3ry1s!4m3}&lt;/p&gt;
+&lt;/blockquote&gt;</description>
+    </item>
+    
+    <item>
+      <title>INSOMNIHACK 2017 Teaser - The Great Escape</title>
       <link>https://jiulongw.github.io/post/insomnihack-2017-the-great-escape/</link>
       <pubDate>Sun, 22 Jan 2017 17:41:36 -0800</pubDate>
       
@@ -23,6 +116,8 @@
 &lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
 
 &lt;blockquote&gt;
+&lt;h2 id=&#34;the-great-escape-forensics-50-200-200-pts-created-by-clz&#34;&gt;The Great Escape - Forensics - 50/200/200 pts - created by clZ&lt;/h2&gt;
+
 &lt;p&gt;Hello,&lt;/p&gt;
 
 &lt;p&gt;We&amp;rsquo;ve been suspecting Swiss Secure Cloud of secretely doing some pretty advanced research in artifical intelligence

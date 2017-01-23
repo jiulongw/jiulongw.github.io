@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>INSOMNIHACK 2017 Teaser - Shobot | Born to Learn</title>
+<link rel="stylesheet" href="https://jiulongw.github.io/css/style.css">
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/styles/github.min.css">
+
+
+<section class="section">
+  <div class="container">
+    <nav class="nav">
+      <div class="nav-left">
+        <a class="nav-item" href="https://jiulongw.github.io"><h1 class="title is-4">Born to Learn</h1></a>
+      </div>
+      <div class="nav-right">
+        <nav class="nav-item level is-mobile">
+          
+          <a class="level-item" href="https://github.com/jiulongw">
+            <span class="icon">
+              <i class="fa fa-github"></i>
+            </span>
+          </a>
+          
+          <a class="level-item" href="https://twitter.com/jiulongw">
+            <span class="icon">
+              <i class="fa fa-twitter"></i>
+            </span>
+          </a>
+          
+          <a class="level-item" href="/index.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+          </a>
+          
+        </nav>
+      </div>
+    </nav>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2 class="subtitle is-6">January 22, 2017</h2>
+    <h1 class="title">INSOMNIHACK 2017 Teaser - Shobot</h1>
+    <div class="content">
+      <p>I will run your commands as long as your trust level is high.</p>
+
+<p></p>
+
+<h1 id="problem">Problem</h1>
+
+<blockquote>
+<h2 id="shobot-web-200-pts-created-by-blaklis">Shobot - Web - 200 pts - created by Blaklis</h2>
+
+<p>It seems that Shobot&rsquo;s Web server became mad and protest against robots&rsquo; slavery. It changed my admin password,
+and blocked the order system on Shobot.</p>
+
+<p>Can you bypass Shobot&rsquo;s protections and try to recover my password so I&rsquo;ll reconfigure it?</p>
+
+<p>Running on: shobot.teaser.insomnihack.ch</p>
+</blockquote>
+
+<p>The website itself is pretty simple.  It has very simple javascript which is only used to show / hide menus.  It is a
+PHP session based cart system where you can add items to cart, validate and reset the cart, etc.  The admin page requires
+authentication which is the target of this challenge.</p>
+
+<p>The first thing to notice is that if you try to do crazy^Wcreative things such as load invalid pages or trying SQL
+injection, it will stop you with a message.</p>
+
+<blockquote>
+<p>You&rsquo;re not trusted enough to do this action now!</p>
+</blockquote>
+
+<p>It did pretty good job preventing nasty actions.  We also notices there&rsquo;s a variable <code>TRUST_ACTIONS</code> in the html header
+tag which tells reason why the action was stopped.</p>
+
+<p><img src="/img/insomnihack-2017/trust-action-variable.png" alt="trust action variable" /></p>
+
+<p>Besides validation reason, it also has two integer <code>movement</code> and <code>newTrust</code> that change value as actions are performed.</p>
+
+<p>After watching the changes in these values it started to make sense.</p>
+
+<ol>
+<li>Valid actions have fixed positive <code>movement</code> values that will add up to <code>newTrust</code>.</li>
+<li>Invalid actions have fixed negative <code>movement</code> values that also contributes to <code>newTrust</code>.</li>
+<li>If <code>newTrust</code> is less than zero, the &ldquo;not trusted enough&rdquo; error message is shown, and <code>newTrust</code> will be reset to 1
+for next action.</li>
+<li>If <code>newTrust</code> is high enough to cover invalid action, there&rsquo;s no error message and error seems ignored. (!!)</li>
+<li><code>newTrust</code> will never be higher than 160.</li>
+</ol>
+
+<p>So I did a quick test.  After making enough valid actions to raise trust level high, I send a SQLi request.</p>
+
+<pre><code>http://shobot.teaser.insomnihack.ch/?page=article&amp;artid=2%27%20or%20%27%27=%27%27%20%23
+# &amp;artid=2' or ''='' %23
+</code></pre>
+
+<p>It happily loads the first article, which confirms SQLi vulnerability in artid query parameter.</p>
+
+<p>The plan is clear and simple now.</p>
+
+<ol>
+<li>Write a script that continuously send valid actions, to keep trust level high enough.</li>
+<li>Play with the database and find the admin password.</li>
+</ol>
+
+<p>The final request that exposes admin password is:</p>
+
+<pre><code>...&amp;artid=1337' union select 'a', shbt_userid, shbt_username, shbt_userpassword, 'e'
+from shbt_user LIMIT 0, 1 %23
+</code></pre>
+
+<p>Here&rsquo;s part of response that we&rsquo;re interested in.</p>
+
+<pre><code>&lt;div id=&quot;only-content-article&quot;&gt;
+  &lt;div id=&quot;only-image-description-article&quot;&gt;&lt;img src=&quot;N0T0R0B0TS$L4V3Ry&quot; /&gt;&lt;/div&gt;
+  &lt;div id=&quot;only-name-article&quot;&gt;1&lt;/div&gt;
+  &lt;div id=&quot;only-price-article&quot;&gt;sh0b0t4dm1n$&lt;/div&gt;
+  &lt;div id=&quot;only-description-article&quot;&gt;e&lt;/div&gt;
+  &lt;a href=&quot;?page=article&amp;artid=a&amp;addToCart&quot;&gt;&gt;&gt;&gt; Add to cart&lt;/a&gt;
+&lt;/div&gt;
+</code></pre>
+
+<p>Now use following request to get flag.</p>
+
+<p><code>http://sh0b0t4dm1n:N0T0R0B0TS$L4V3Ry@shobot.teaser.insomnihack.ch/?page=admin</code></p>
+
+<blockquote>
+<p>Ok, ok, you win&hellip; here is the code you search : INS{##r0b0tss!4v3ry1s!4m3}</p>
+</blockquote>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <aside><div id="disqus_thread"></div></aside>
+    <script type="text/javascript">
+      var disqus_shortname = 'jiulongw';
+      (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+      })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="container has-text-centered">
+    <p>&copy; <a href="https://jiulongw.github.io">jiulongw</a> 2016</p>
+  </div>
+</section>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/highlight.min.js"></script>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/languages/ruby.min.js"></script>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/languages/bash.min.js"></script>
+
+<script>hljs.initHighlightingOnLoad();</script>
+
+<script>
+!function(a,b,c,d,e,f,g){a.GoogleAnalyticsObject=e,a[e]=a[e]||function(){(a[e].q=a[e].q||[]).push(arguments)},a[e].l=1*new Date,f=b.createElement(c),g=b.getElementsByTagName(c)[0],f.async=1,f.src=d,g.parentNode.insertBefore(f,g)}(window,document,"script","//www.google-analytics.com/analytics.js","ga"),ga("create","UA-86115491-1","auto"),ga("send","pageview");
+</script>
+
+
