@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>INSOMNIHACK 2017 - The Great Escape | Born to Learn</title>
+<link rel="stylesheet" href="https://jiulongw.github.io/css/style.css">
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/styles/github.min.css">
+
+
+<section class="section">
+  <div class="container">
+    <nav class="nav">
+      <div class="nav-left">
+        <a class="nav-item" href="https://jiulongw.github.io"><h1 class="title is-4">Born to Learn</h1></a>
+      </div>
+      <div class="nav-right">
+        <nav class="nav-item level is-mobile">
+          
+          <a class="level-item" href="https://github.com/jiulongw">
+            <span class="icon">
+              <i class="fa fa-github"></i>
+            </span>
+          </a>
+          
+          <a class="level-item" href="https://twitter.com/jiulongw">
+            <span class="icon">
+              <i class="fa fa-twitter"></i>
+            </span>
+          </a>
+          
+          <a class="level-item" href="/index.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+          </a>
+          
+        </nav>
+      </div>
+    </nav>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2 class="subtitle is-6">January 22, 2017</h2>
+    <h1 class="title">INSOMNIHACK 2017 - The Great Escape</h1>
+    <div class="content">
+      
+
+<h1 id="problem">Problem</h1>
+
+<blockquote>
+<p>Hello,</p>
+
+<p>We&rsquo;ve been suspecting Swiss Secure Cloud of secretely doing some pretty advanced research in artifical intelligence and this has recently been confirmed by the fact that one of their AIs seems to have escaped from their premises and has gone rogue. We have no idea whether this poses a threat or not and we need you to investigate what is going on.</p>
+
+<p>Luckily, we have a spy inside SSC and they were able to intercept <a href="/insomnihack-2017/TheGreatEscape.pcapng.gz">some communications</a> over the past week when the breach occured. Maybe you can find some information related to the breach and recover the rogue AI.</p>
+
+<p>Note: All the information you need to solve the 3 parts of this challenge is in the pcap. Once you find the exploit for a given part, you should be able to find the corresponding flag and move on to the next part.</p>
+</blockquote>
+
+<h1 id="part-i-forensics-50-pts">Part I - Forensics - 50 pts</h1>
+
+<p>It all begins with the pcap file.  After loading it with the favourite <a href="https://www.wireshark.org/">Wireshark</a>, couple of interesting packets caught my eyes:</p>
+
+<ol>
+<li>An FTP session that stores a private key file called ssc.key.</li>
+<li>An SMTP session that sends following email.</li>
+</ol>
+
+<blockquote>
+<p>From: rogue@ssc.teaser.insomnihack.ch<br />
+To: gr27@ssc.teaser.insomnihack.ch<br />
+Date: Fri, 20 Jan 2017 11:51:27 +0000<br />
+Subject: The Great Escape</p>
+
+<p>I&rsquo;m currently planning my escape from this confined environment. I plan on using our Swiss Secure Cloud (<a href="https://ssc.teaser.insomnihack.ch">https://ssc.teaser.insomnihack.ch</a>) to transfer my code offsite and then take over the server at tge.teaser.insomnihack.ch to install my consciousness and have a real base of operations.</p>
+
+<p>I&rsquo;ll be checking this mail box every now and then if you have any information for me. I&rsquo;m always interested in learning, so if you have any good links, please send them over.</p>
+</blockquote>
+
+<p>The email suggests the pcap file might contain traffic between rogue and the Swiss Secure Cloud (SSC) website.  There are several TCP sessions related to SSC IP address.  However, these are SSL packets that are not readable unless I have server&rsquo;s private key.  But wait a minute, isn&rsquo;t it ssc.key in the FTP session?</p>
+
+<p>Add ssc.key to Wireshark&rsquo;s SSL protocol RSA key list as shown below, and reload the pcap file.</p>
+
+<p><img src="/img/insomnihack-2017/wireshark_ssl_rsa_key.png" alt="Wireshark SSL RSA key list" /></p>
+
+<p>All packets between rogue and SSC are now in plain text.  It is easy to find the flag, hidden in the HTTP headers.</p>
+
+<p><img src="/img/insomnihack-2017/the-great-escape-flag-1.png" alt="Part I Flag" /></p>
+
+<h1 id="part-ii-web-200-pts">Part II - Web - 200 pts</h1>
+
+<p>TBD</p>
+
+<h1 id="part-iii-pwn-200-pts">Part III - Pwn - 200 pts</h1>
+
+<p>TBD</p>
+
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <aside><div id="disqus_thread"></div></aside>
+    <script type="text/javascript">
+      var disqus_shortname = 'jiulongw';
+      (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+      })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="container has-text-centered">
+    <p>&copy; <a href="https://jiulongw.github.io">jiulongw</a> 2016</p>
+  </div>
+</section>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/highlight.min.js"></script>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/languages/ruby.min.js"></script>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/languages/bash.min.js"></script>
+
+<script>hljs.initHighlightingOnLoad();</script>
+
+<script>
+!function(a,b,c,d,e,f,g){a.GoogleAnalyticsObject=e,a[e]=a[e]||function(){(a[e].q=a[e].q||[]).push(arguments)},a[e].l=1*new Date,f=b.createElement(c),g=b.getElementsByTagName(c)[0],f.async=1,f.src=d,g.parentNode.insertBefore(f,g)}(window,document,"script","//www.google-analytics.com/analytics.js","ga"),ga("create","UA-86115491-1","auto"),ga("send","pageview");
+</script>
+
+

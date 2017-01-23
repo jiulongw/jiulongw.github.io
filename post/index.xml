@@ -7,8 +7,68 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>&amp;copy; &lt;a href=&#34;https://jiulongw.github.io&#34;&gt;jiulongw&lt;/a&gt; 2016</copyright>
-    <lastBuildDate>Sat, 29 Oct 2016 21:08:39 -0700</lastBuildDate>
+    <lastBuildDate>Sun, 22 Jan 2017 17:41:36 -0800</lastBuildDate>
     <atom:link href="https://jiulongw.github.io/post/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>INSOMNIHACK 2017 - The Great Escape</title>
+      <link>https://jiulongw.github.io/post/insomnihack-2017-the-great-escape/</link>
+      <pubDate>Sun, 22 Jan 2017 17:41:36 -0800</pubDate>
+      
+      <guid>https://jiulongw.github.io/post/insomnihack-2017-the-great-escape/</guid>
+      <description>
+
+&lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Hello,&lt;/p&gt;
+
+&lt;p&gt;We&amp;rsquo;ve been suspecting Swiss Secure Cloud of secretely doing some pretty advanced research in artifical intelligence and this has recently been confirmed by the fact that one of their AIs seems to have escaped from their premises and has gone rogue. We have no idea whether this poses a threat or not and we need you to investigate what is going on.&lt;/p&gt;
+
+&lt;p&gt;Luckily, we have a spy inside SSC and they were able to intercept &lt;a href=&#34;https://jiulongw.github.io/insomnihack-2017/TheGreatEscape.pcapng.gz&#34;&gt;some communications&lt;/a&gt; over the past week when the breach occured. Maybe you can find some information related to the breach and recover the rogue AI.&lt;/p&gt;
+
+&lt;p&gt;Note: All the information you need to solve the 3 parts of this challenge is in the pcap. Once you find the exploit for a given part, you should be able to find the corresponding flag and move on to the next part.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h1 id=&#34;part-i-forensics-50-pts&#34;&gt;Part I - Forensics - 50 pts&lt;/h1&gt;
+
+&lt;p&gt;It all begins with the pcap file.  After loading it with the favourite &lt;a href=&#34;https://www.wireshark.org/&#34;&gt;Wireshark&lt;/a&gt;, couple of interesting packets caught my eyes:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;An FTP session that stores a private key file called ssc.key.&lt;/li&gt;
+&lt;li&gt;An SMTP session that sends following email.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;From: rogue@ssc.teaser.insomnihack.ch&lt;br /&gt;
+To: gr27@ssc.teaser.insomnihack.ch&lt;br /&gt;
+Date: Fri, 20 Jan 2017 11:51:27 +0000&lt;br /&gt;
+Subject: The Great Escape&lt;/p&gt;
+
+&lt;p&gt;I&amp;rsquo;m currently planning my escape from this confined environment. I plan on using our Swiss Secure Cloud (&lt;a href=&#34;https://ssc.teaser.insomnihack.ch&#34;&gt;https://ssc.teaser.insomnihack.ch&lt;/a&gt;) to transfer my code offsite and then take over the server at tge.teaser.insomnihack.ch to install my consciousness and have a real base of operations.&lt;/p&gt;
+
+&lt;p&gt;I&amp;rsquo;ll be checking this mail box every now and then if you have any information for me. I&amp;rsquo;m always interested in learning, so if you have any good links, please send them over.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;The email suggests the pcap file might contain traffic between rogue and the Swiss Secure Cloud (SSC) website.  There are several TCP sessions related to SSC IP address.  However, these are SSL packets that are not readable unless I have server&amp;rsquo;s private key.  But wait a minute, isn&amp;rsquo;t it ssc.key in the FTP session?&lt;/p&gt;
+
+&lt;p&gt;Add ssc.key to Wireshark&amp;rsquo;s SSL protocol RSA key list as shown below, and reload the pcap file.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://jiulongw.github.io/img/insomnihack-2017/wireshark_ssl_rsa_key.png&#34; alt=&#34;Wireshark SSL RSA key list&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;All packets between rogue and SSC are now in plain text.  It is easy to find the flag, hidden in the HTTP headers.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://jiulongw.github.io/img/insomnihack-2017/the-great-escape-flag-1.png&#34; alt=&#34;Part I Flag&#34; /&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;part-ii-web-200-pts&#34;&gt;Part II - Web - 200 pts&lt;/h1&gt;
+
+&lt;p&gt;TBD&lt;/p&gt;
+
+&lt;h1 id=&#34;part-iii-pwn-200-pts&#34;&gt;Part III - Pwn - 200 pts&lt;/h1&gt;
+
+&lt;p&gt;TBD&lt;/p&gt;
+</description>
+    </item>
     
     <item>
       <title>HITCON 2016 - Hackpad</title>
