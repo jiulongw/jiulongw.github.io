@@ -1,0 +1,3 @@
+[submodule "hemingway_forked"]
+	path = .source/themes/hemingway
+	url = https://github.com/jiulongw/hemingway
