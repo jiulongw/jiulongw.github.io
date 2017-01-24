@@ -1,7 +1,7 @@
 +++
 date = "2017-01-22T23:08:09-08:00"
 title = "INSOMNIHACK 2017 Teaser - Shobot"
-
+tags = ["CTF", "Web", "SQLi"]
 +++
 
 I will run your commands as long as your trust level is high.

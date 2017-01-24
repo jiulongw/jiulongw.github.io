@@ -2,7 +2,7 @@
 date = "2016-10-23T20:49:57-07:00"
 title = "HITCON 2016 - Sharingan"
 draft = false
-
+tags = ["CTF", "Misc"]
 +++
 
 It is no fair play.  Can you win?

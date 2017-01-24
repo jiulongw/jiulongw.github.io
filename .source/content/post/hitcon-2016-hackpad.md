@@ -1,7 +1,7 @@
 +++
 title = "HITCON 2016 - Hackpad"
 date = "2016-10-29T21:08:39-07:00"
-
+tags = ["CTF", "Forensics", "Crypto"]
 +++
 
 In cryptography, a padding oracle attack is an attack which is performed using the padding of a cryptographic message.
