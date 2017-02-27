@@ -22,16 +22,14 @@ In `handle_request`, it reads some properties from incoming HTTP request, and pa
 ```
 ......
   LODWORD(v9) = MHD_get_connection_info(a3, 2LL);
-  v22 = *(_QWORD *)v9;
-  inet_ntop(2, (const void *)(*(_QWORD *)v9 + 4LL), &buf, 0x10u);
+  ...
+  ...
   LODWORD(v10) = MHD_lookup_connection_value(a3, 1LL, "Host");
   host = v10;
-  if ( *a5 != &dummy_6361 )
-    _printf_chk(1LL, "[%s:%d] %s %s %s %s\n", &buf, *(_WORD *)(v22 + 2), method, a3a);
+  ...
   if ( strcmp(method, "GET") || (result = strcmp(method, "POST")) != 0 )
   {
-    if ( *a5 == &dummy_6361 )
-    {
+    ...
       if ( !strcmp(method, "POST") )
       {
         LODWORD(v13) = MHD_lookup_connection_value(a3, 1LL, "Content-Length");
@@ -44,21 +42,14 @@ In `handle_request`, it reads some properties from incoming HTTP request, and pa
       }
       LODWORD(v15) = MHD_lookup_connection_value(a3, 1LL, "Cookie");
       cookies = v15;
-      a7 = 500LL;
+      ...
       MHD_suspend_connection(a3);
-      v17 = method;
+      ...
       v18 = make_request(host, method, a3a, v6, length, cookies, &a7);
       MHD_resume_connection(v7, v17);
       v19 = MHD_queue_response(v7, (unsigned int)a7, v18);
       MHD_destroy_response(v18);
-      result = v19;
-    }
-    else
-    {
-      *a5 = &dummy_6361;
-      result = 1;
-    }
-  }
+      ...
 ......
 ```
 
@@ -68,7 +59,7 @@ In `make_request`, it constructs curl request using data from incoming request.
 ......
   v11 = open_memstream(&bufloc, &sizeloc);
   LODWORD(v12) = curl_easy_init(&bufloc, &sizeloc);
-  v13 = v12;
+  ...
   curl_easy_setopt(v12, 10002LL, ((unsigned __int64)&v23 + 7) & 0xFFFFFFFFFFFFFFF0LL);// set host
   curl_easy_setopt(v13, 181LL, 1LL);            // protocol=1 (http only)
   curl_easy_setopt(v13, 10001LL, v11);          // output (FILE* or void*)
@@ -83,22 +74,7 @@ In `make_request`, it constructs curl request using data from incoming request.
     curl_easy_setopt(v13, 10022LL, v8);         // set cookie
   v14 = curl_easy_perform(v13);
   fclose(v11);
-  if ( v14 )
-  {
-    LODWORD(v15) = curl_easy_strerror((unsigned int)v14);
-    _fprintf_chk(stderr, 1LL, "curl_easy_perform() failed: %s\n", v15);
-    *v23 = 500LL;
-    LODWORD(v16) = MHD_create_response_from_buffer(
-                     54LL,
-                     (__int64)"<html><title>Error!</title><h1>Error! Bad!</h1></html>",
-                     0LL);
-    v17 = "text/html";
-    v18 = v16;
-LABEL_8:
-    MHD_add_response_header(v18, "Content-Type", v17);
-    goto LABEL_9;
-  }
-  curl_easy_getinfo_err_long();
+  ...
   curl_easy_getinfo((__int64)v13, 0x200002LL, (__int64)&v23);// get response code
   LODWORD(v19) = MHD_create_response_from_buffer(sizeloc, (__int64)bufloc, 1LL);
 ......
