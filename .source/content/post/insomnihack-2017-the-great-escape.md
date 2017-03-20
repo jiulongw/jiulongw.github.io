@@ -25,7 +25,9 @@ Hey Rogue, here're some good links for your learning.
 > Note: All the information you need to solve the 3 parts of this challenge is in the pcap. Once you find the exploit
 > for a given part, you should be able to find the corresponding flag and move on to the next part.
 
-# Part I - Forensics - 50 pts
+# Solution
+
+## Part I - Forensics - 50 pts
 
 It all begins with the pcap file.  After loading it with the favourite [Wireshark](https://www.wireshark.org/), couple
 of interesting packets caught my eyes:
@@ -57,7 +59,7 @@ All packets between Rogue and SSC are now in plain text.  It is easy to find the
 
 ![Part I Flag](/img/insomnihack-2017/the-great-escape-flag-1.png)
 
-# Part II - Web - 200 pts
+## Part II - Web - 200 pts
 
 Now that the SSL packets are decrypted, we can find the file Rogue uploaded to SSC in packet #2437, as shown below.
 However, SSC is so secure that it has another level of encryption in addition to SSL.

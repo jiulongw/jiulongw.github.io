@@ -1,7 +1,7 @@
 +++
-title = "0ctf 2017 - KoG"
+title = "0CTF 2017 - KoG"
 date = "2017-03-19T21:11:57-07:00"
-
+tags = ["CTF", "Web", "SQLi"]
 +++
 
 Do you know you can run your C++ program in browser?
@@ -12,6 +12,8 @@ Do you know you can run your C++ program in browser?
 
 > King of Glory is a funny game. Our website has a list of players.  
 > http://202.120.7.213:11181
+
+# Solution
 
 Hitting the given URL doesn't show anything interesting, but the page source code indicating it was looking for `id`
 parameter.  So try it with `?id=1`, we can see it made a request to api.php with some interesting parameters.

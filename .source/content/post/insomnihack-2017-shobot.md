@@ -19,6 +19,8 @@ I will run your commands as long as your trust level is high.
 >
 > Running on: shobot.teaser.insomnihack.ch
 
+# Solution
+
 The website itself is pretty simple.  It has very simple javascript which is only used to show / hide menus.  It is a
 PHP session based cart system where you can add items to cart, validate and reset the cart, etc.  The admin page requires
 authentication which is the target of this challenge.

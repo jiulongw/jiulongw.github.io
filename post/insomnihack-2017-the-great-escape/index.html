@@ -86,7 +86,9 @@ rogue AI.</p>
 for a given part, you should be able to find the corresponding flag and move on to the next part.</p>
 </blockquote>
 
-<h1 id="part-i-forensics-50-pts">Part I - Forensics - 50 pts</h1>
+<h1 id="solution">Solution</h1>
+
+<h2 id="part-i-forensics-50-pts">Part I - Forensics - 50 pts</h2>
 
 <p>It all begins with the pcap file.  After loading it with the favourite <a href="https://www.wireshark.org/">Wireshark</a>, couple
 of interesting packets caught my eyes:</p>
@@ -122,7 +124,7 @@ I have server&rsquo;s private key.  But wait a minute, isn&rsquo;t it ssc.key in
 
 <p><img src="/img/insomnihack-2017/the-great-escape-flag-1.png" alt="Part I Flag" /></p>
 
-<h1 id="part-ii-web-200-pts">Part II - Web - 200 pts</h1>
+<h2 id="part-ii-web-200-pts">Part II - Web - 200 pts</h2>
 
 <p>Now that the SSL packets are decrypted, we can find the file Rogue uploaded to SSC in packet #2437, as shown below.
 However, SSC is so secure that it has another level of encryption in addition to SSL.</p>

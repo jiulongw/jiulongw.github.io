@@ -2,7 +2,7 @@
 <html lang="en-us">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>0ctf 2017 - KoG | Born to Learn</title>
+<title>0CTF 2017 - KoG | Born to Learn</title>
 <link rel="stylesheet" href="https://jiulongw.github.io/css/style.css">
 <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
 
@@ -46,9 +46,20 @@
   <div class="container">
     <div class="subtitle is-6 is-pulled-right">
       
+      
+<a class="subtitle is-6" href="/tags/ctf">#CTF</a>
+
+
+
+| <a class="subtitle is-6" href="/tags/web">#Web</a>
+
+| <a class="subtitle is-6" href="/tags/sqli">#SQLi</a>
+
+
+      
     </div>
     <h2 class="subtitle is-6">March 19, 2017</h2>
-    <h1 class="title">0ctf 2017 - KoG</h1>
+    <h1 class="title">0CTF 2017 - KoG</h1>
     <div class="content">
       <p>Do you know you can run your C++ program in browser?</p>
 
@@ -60,6 +71,8 @@
 <p>King of Glory is a funny game. Our website has a list of players.<br />
 <a href="http://202.120.7.213:11181">http://202.120.7.213:11181</a></p>
 </blockquote>
+
+<h1 id="solution">Solution</h1>
 
 <p>Hitting the given URL doesn&rsquo;t show anything interesting, but the page source code indicating it was looking for <code>id</code>
 parameter.  So try it with <code>?id=1</code>, we can see it made a request to api.php with some interesting parameters.</p>

