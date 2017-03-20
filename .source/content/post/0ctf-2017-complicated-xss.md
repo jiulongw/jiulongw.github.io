@@ -4,7 +4,7 @@ title = "0CTF 2017 - Complicated XSS"
 tags = ["CTF", "Web", "XSS"]
 +++
 
-Cookies Monster...
+Cookie Monster...
 
 <!--more-->
 
