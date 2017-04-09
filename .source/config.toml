@@ -14,7 +14,6 @@ tag = "tags"
 
 [params.highlight]
 style = "github"
-languages = ["ruby", "bash"]
 
 [[params.social]]
 url = "https://github.com/jiulongw"
