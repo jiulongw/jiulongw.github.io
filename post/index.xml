@@ -7,10 +7,21 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>&amp;copy; &lt;a href=&#34;https://jiulongw.github.io&#34;&gt;jiulongw&lt;/a&gt; 2016</copyright>
-    <lastBuildDate>Mon, 20 Mar 2017 10:14:18 -0700</lastBuildDate>
+    <lastBuildDate>Wed, 27 Sep 2017 11:23:30 -0700</lastBuildDate>
     
 	<atom:link href="https://jiulongw.github.io/post/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>How to Embed Unity Project into iOS Swift Project</title>
+      <link>https://jiulongw.github.io/post/embed-unity-in-ios-swift-project/</link>
+      <pubDate>Wed, 27 Sep 2017 11:23:30 -0700</pubDate>
+      
+      <guid>https://jiulongw.github.io/post/embed-unity-in-ios-swift-project/</guid>
+      <description>&lt;p&gt;A demo project that embeds Unity 2017.1 project into iOS Xcode 9 project.&lt;/p&gt;
+
+&lt;p&gt;&lt;/p&gt;</description>
+    </item>
     
     <item>
       <title>0CTF 2017 - Complicated XSS</title>
