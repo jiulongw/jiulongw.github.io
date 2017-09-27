@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Born to Learn</title>
-    <link>https://jiulongw.github.io/tags/crypto/index.xml</link>
-    <description>Recent content on Born to Learn</description>
+    <title>Crypto on Born to Learn</title>
+    <link>https://jiulongw.github.io/tags/crypto/</link>
+    <description>Recent content in Crypto on Born to Learn</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>&amp;copy; &lt;a href=&#34;https://jiulongw.github.io&#34;&gt;jiulongw&lt;/a&gt; 2016</copyright>
-    <atom:link href="https://jiulongw.github.io/tags/crypto/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sat, 29 Oct 2016 21:08:39 -0700</lastBuildDate>
+    
+	<atom:link href="https://jiulongw.github.io/tags/crypto/index.xml" rel="self" type="application/rss+xml" />
+    
     
     <item>
       <title>HITCON 2016 - Hackpad</title>
@@ -17,103 +20,7 @@
       <guid>https://jiulongw.github.io/post/hitcon-2016-hackpad/</guid>
       <description>&lt;p&gt;In cryptography, a padding oracle attack is an attack which is performed using the padding of a cryptographic message.&lt;/p&gt;
 
-&lt;p&gt;&lt;/p&gt;
-
-&lt;h1 id=&#34;problem&#34;&gt;Problem&lt;/h1&gt;
-
-&lt;blockquote&gt;
-&lt;p&gt;Hackpad&lt;br /&gt;
-65 Teams solved.&lt;/p&gt;
-
-&lt;p&gt;Description&lt;br /&gt;
-My site was hacked. The secret was leaked.&lt;br /&gt;
-&lt;a href=&#34;https://s3-ap-northeast-1.amazonaws.com/hitcon2016qual/hackpad.pcap.xz_968494cea2c29140ee5e63e37c19cff2254f0229&#34;&gt;hackpad.pcap.xz&lt;/a&gt;&lt;/p&gt;
-
-&lt;p&gt;Hint&lt;br /&gt;
-None&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;h1 id=&#34;solution&#34;&gt;Solution&lt;/h1&gt;
-
-&lt;p&gt;Load the pcap file in &lt;a href=&#34;https://www.wireshark.org/&#34;&gt;Wireshark&lt;/a&gt;.  It contains series of HTTP requests.  Most
-of the response codes are 500s with some 200s in between.  Below are some examples.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;GET /
-200 OK: encrypt(secret): 3ed2e01c1d1248125c67ac637384a22d997d9369c74c82abba4cc3b1bfc65f02...
-
-POST /
-msg=3ed2e01c1d1248125c67ac637384a22d997d9369c74c82abba4cc3b1bfc65f02...
-200 OK: md5(decrypt(msg)) = e5d3583f3e05b9242a1933fd5d245200
-
-POST /
-msg=000000000000000000000000000000ff997d9369c74c82abba4cc3b1bfc65f02
-500 Internal Server Error
-
-POST /
-msg=000000000000000000000000000000fe997d9369c74c82abba4cc3b1bfc65f02
-500 Internal Server Error
-
-POST /
-msg=000000000000000000000000000000fd997d9369c74c82abba4cc3b1bfc65f02
-500 Internal Server Error
-
-...
-
-POST /
-msg=67acd06f7f7b28762310ce1213fccb11997d9369c74c82abba4cc3b1bfc65f02
-200 OK: md5(decrypt(msg)) = d41d8cd98f00b204e9800998ecf8427e
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;It&amp;rsquo;s pretty easy to guess what the server was doing:&lt;/p&gt;
-
-&lt;ol&gt;
-&lt;li&gt;It returns encrypted message on GET request&lt;/li&gt;
-&lt;li&gt;It decrypts the message in POST request and returns hash of plain message.&lt;/li&gt;
-&lt;li&gt;However, if the encrypted message in the POST request was malformed, it returns 500 Internal Server Error.&lt;/li&gt;
-&lt;/ol&gt;
-
-&lt;p&gt;This is a typical &lt;a href=&#34;https://en.wikipedia.org/wiki/Padding_oracle_attack&#34;&gt;Padding Oracle Attack&lt;/a&gt;.&lt;/p&gt;
-
-&lt;p&gt;In CBC mode decryption: P&lt;sub&gt;i&lt;/sub&gt; = D(C&lt;sub&gt;i&lt;/sub&gt;) &amp;oplus; C&lt;sub&gt;i-1&lt;/sub&gt; where C&lt;sub&gt;0&lt;/sub&gt; = IV.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&#34;https://jiulongw.github.io/img/hitcon-2016-hackpad/cbc_decryption.png&#34; alt=&#34;CBC mode decryption&#34; /&gt;&lt;/p&gt;
-
-&lt;p&gt;We know &lt;code&gt;67acd06f7f7b28762310ce1213fccb11997d9369c74c82abba4cc3b1bfc65f02&lt;/code&gt; is a valid encrypted message, it&amp;rsquo;s
-padding is &lt;code&gt;10101010101010101010101010101010&lt;/code&gt;.  As a result:&lt;/p&gt;
-
-&lt;p&gt;D(&lt;code&gt;997d9369c74c82abba4cc3b1bfc65f02&lt;/code&gt;) &amp;oplus; &lt;code&gt;67acd06f7f7b28762310ce1213fccb11&lt;/code&gt; = &lt;code&gt;10101010101010101010101010101010&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;P&lt;sub&gt;1&lt;/sub&gt; = D(&lt;code&gt;997d9369c74c82abba4cc3b1bfc65f02&lt;/code&gt;) &amp;oplus; &lt;code&gt;3ed2e01c1d1248125c67ac637384a22d&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;Let&amp;rsquo;s give it a quick try.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;&amp;gt;&amp;gt;&amp;gt; a = 0x67acd06f7f7b28762310ce1213fccb11 ^ 0x10101010101010101010101010101010 ^ 0x3ed2e01c1d1248125c67ac637384a22d
-&amp;gt;&amp;gt;&amp;gt; hex(a)[2:-1].decode(&#39;hex&#39;)
-&#39;In cryptography,&#39;
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Well, seems like we&amp;rsquo;re on the right track.  The rest is simply cutting the original encrypted messages into 16 bytes blocks
-and xor-ing it with the first block of every successful padding oracle attack result.&lt;/p&gt;
-
-&lt;p&gt;You can use &lt;code&gt;strings hackpad.pcap | grep msg=&lt;/code&gt; to extract all messages and do some pre-processing to get a list of
-succesful padding oracle attacks.&lt;/p&gt;
-
-&lt;pre&gt;&lt;code&gt;In cryptography,
- a padding oracl
-e attack is an a
-ttack which is p
-erformed using t
-he padding of a 
-cryptographic me
-ssage.
-hitcon{H4
-cked by a de1ici
-0us pudding &#39;3&#39;}
-&lt;/code&gt;&lt;/pre&gt;
-
-&lt;p&gt;Flag: &lt;code&gt;hitcon{H4cked by a de1ici0us pudding &#39;3&#39;}&lt;/code&gt;&lt;/p&gt;
-
-&lt;p&gt;Credits to team member @jina.&lt;/p&gt;</description>
+&lt;p&gt;&lt;/p&gt;</description>
     </item>
     
   </channel>

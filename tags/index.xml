@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Tags on Born to Learn</title>
+    <link>https://jiulongw.github.io/tags/</link>
+    <description>Recent content in Tags on Born to Learn</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <copyright>&amp;copy; &lt;a href=&#34;https://jiulongw.github.io&#34;&gt;jiulongw&lt;/a&gt; 2016</copyright>
+    <lastBuildDate>Sat, 29 Oct 2016 21:08:39 -0700</lastBuildDate>
+    
+	<atom:link href="https://jiulongw.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Crypto</title>
+      <link>https://jiulongw.github.io/tags/crypto/</link>
+      <pubDate>Sat, 29 Oct 2016 21:08:39 -0700</pubDate>
+      
+      <guid>https://jiulongw.github.io/tags/crypto/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Ctf</title>
+      <link>https://jiulongw.github.io/tags/ctf/</link>
+      <pubDate>Mon, 20 Mar 2017 10:14:18 -0700</pubDate>
+      
+      <guid>https://jiulongw.github.io/tags/ctf/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Forensics</title>
+      <link>https://jiulongw.github.io/tags/forensics/</link>
+      <pubDate>Sun, 22 Jan 2017 17:41:36 -0800</pubDate>
+      
+      <guid>https://jiulongw.github.io/tags/forensics/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Misc</title>
+      <link>https://jiulongw.github.io/tags/misc/</link>
+      <pubDate>Sun, 23 Oct 2016 20:49:57 -0700</pubDate>
+      
+      <guid>https://jiulongw.github.io/tags/misc/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Sqli</title>
+      <link>https://jiulongw.github.io/tags/sqli/</link>
+      <pubDate>Sun, 19 Mar 2017 21:11:57 -0700</pubDate>
+      
+      <guid>https://jiulongw.github.io/tags/sqli/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Web</title>
+      <link>https://jiulongw.github.io/tags/web/</link>
+      <pubDate>Mon, 20 Mar 2017 10:14:18 -0700</pubDate>
+      
+      <guid>https://jiulongw.github.io/tags/web/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Xss</title>
+      <link>https://jiulongw.github.io/tags/xss/</link>
+      <pubDate>Mon, 20 Mar 2017 10:14:18 -0700</pubDate>
+      
+      <guid>https://jiulongw.github.io/tags/xss/</guid>
+      <description></description>
+    </item>
+    
+  </channel>
+</rss>
