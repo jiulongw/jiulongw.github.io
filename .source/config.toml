@@ -11,6 +11,7 @@ copyright = "&copy; <a href=\"https://jiulongw.github.io\">jiulongw</a> 2016"
 tag = "tags"
 
 [params]
+favicon = "https://assets-cdn.github.com/favicon.ico"
 
 [params.highlight]
 style = "github"
