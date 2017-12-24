@@ -13,12 +13,12 @@
     
     
     <item>
-      <title>How to Embed Unity Project into iOS Swift Project</title>
+      <title>Integrating Unity Project into Xcode Swift Project</title>
       <link>https://jiulongw.github.io/post/embed-unity-in-ios-swift-project/</link>
       <pubDate>Wed, 27 Sep 2017 11:23:30 -0700</pubDate>
       
       <guid>https://jiulongw.github.io/post/embed-unity-in-ios-swift-project/</guid>
-      <description>&lt;p&gt;A demo project that embeds Unity 2017.1 project into iOS Xcode 9 project.&lt;/p&gt;
+      <description>&lt;p&gt;A demo project that embeds Unity 2017.1+ project into iOS Xcode 9+ project.&lt;/p&gt;
 
 &lt;p&gt;&lt;/p&gt;</description>
     </item>

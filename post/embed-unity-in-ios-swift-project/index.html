@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>How to Embed Unity Project into iOS Swift Project | Born to Learn</title>
+<title>Integrating Unity Project into Xcode Swift Project | Born to Learn</title>
 <link rel="stylesheet" href="https://jiulongw.github.io/css/style.css" />
 <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" />
 
@@ -67,167 +67,176 @@
       
     </div>
     <h2 class="subtitle is-6">September 27, 2017</h2>
-    <h1 class="title">How to Embed Unity Project into iOS Swift Project</h1>
+    <h1 class="title">Integrating Unity Project into Xcode Swift Project</h1>
     <div class="content">
-      <p>A demo project that embeds Unity 2017.1 project into iOS Xcode 9 project.</p>
+      <p>A demo project that embeds Unity 2017.1+ project into iOS Xcode 9+ project.</p>
 
 <p></p>
 
-<p><a href="https://github.com/jiulongw/swift-unity">This repo</a> contains a demo Xcode 9 iOS project (Swift 4.0) that builds a single view app with an embeded Unity3d
-scene (Unity 2017.1.1f1).  The idea here is to automate build processes for both projects as much as possible to avoid
-manual copy &amp; paste every time Unity project is updated.  It also demonstrates runtime communication between Swift
-and Unity.</p>
+<p><a href="https://github.com/jiulongw/swift-unity">This repo</a> contains a demo Xcode 9.1 iOS project (Swift 4.0) that builds a single view app with an embeded Unity scene
+(Unity 2017.2.0f3) with two-way communication between Unity and Swift.  It contains automation script that could be
+easily re-used in existing Unity and Swift projects.</p>
 
-<p>This would not be possible without <a href="https://github.com/blitzagency/ios-unity5">tutorial by BLITZ</a> and <a href="http://www.the-nerd.be/2015/08/20/a-better-way-to-integrate-unity3d-within-a-native-ios-application/">video by the-nerd Frederik Jacques</a>.  Minor updates
-are applied to fit latest Xcode and Unity releases.  Here I will briefly go through the process and highlight
-these updates.</p>
+<p><img src="https://github.com/jiulongw/swift-unity/raw/master/images/demo.gif" alt="Demo Video" /></p>
 
-<h2 id="unity-project">Unity Project</h2>
+<p>This would not be possible without <a href="https://github.com/blitzagency/ios-unity5">tutorial by BLITZ</a> and <a href="http://www.the-nerd.be/2015/08/20/a-better-way-to-integrate-unity3d-within-a-native-ios-application/">video by the-nerd Frederik Jacques</a>.  Several updates
+are applied to fit latest Xcode and Unity releases.</p>
 
-<p>A post build process script is added to Unity project. After each build, Xcode project gets information about
-where Unity dropped build outputs.  This way we don&rsquo;t have to use same build drop every time.</p>
+<h2 id="compatibility">Compatibility</h2>
 
-<pre><code class="language-cs">[PostProcessBuild]
-public static void OnPostBuild(BuildTarget target, string pathToBuiltProject)
-{
-#if UNITY_IOS
-    var config = new StringBuilder();
-    config.AppendFormat(&quot;UNITY_RUNTIME_VERSION = {0};&quot;, Application.unityVersion);
-    config.AppendLine();
-    config.AppendFormat(&quot;UNITY_IOS_EXPORT_PATH = {0};&quot;, pathToBuiltProject);
-    config.AppendLine();
+<h3 id="unity">Unity</h3>
 
-    var configPath = Path.Combine(Environment.CurrentDirectory, &quot;../xcode/DemoApp/Unity/Exports.xcconfig&quot;);
-    File.WriteAllText(configPath, config.ToString());
-#endif
-}
+<ul>
+<li>2017.1.1</li>
+<li>2017.1.2</li>
+<li>2017.2.0</li>
+<li>2017.3.0</li>
+</ul>
+
+<h3 id="xcode">Xcode</h3>
+
+<ul>
+<li>Xcode 9.0</li>
+<li>Xcode 9.1</li>
+<li>Xcode 9.2</li>
+</ul>
+
+<h2 id="faq">FAQ</h2>
+
+<ul>
+<li><a href="https://github.com/jiulongw/swift-unity/issues/8">Exports.xcconfig file missing</a></li>
+<li><a href="https://github.com/jiulongw/swift-unity/issues/31">Xcode compile error when using .Net 4.6 backend in Unity</a></li>
+<li><a href="https://github.com/jiulongw/swift-unity/issues/17">Entry point (<code>_main</code>) undefined</a></li>
+</ul>
+
+<h2 id="why-did-i-create-this">Why did I create this</h2>
+
+<p>I like to automate things when I find myself doing the same thing several times, and potentially over and over again.
+If you are (like I am) tired of these tedious steps every time you export a new Unity build, you will love this
+automation.  Once integrated, Swift project gets updated automatically everytime a new Unity build is exported.</p>
+
+<h2 id="how-to-run-the-demo">How to run the demo</h2>
+
+<p>First open Unity project, open <code>Demo</code> scene, open <code>Build Settings</code> and switch to iOS platform, then hit <code>Build</code>.  You
+can put output anywhere but better put it to some temporary folder such as <code>/tmp</code>.</p>
+
+<p>Once build succeeded, open Xcode project, select target device (Unity does not support <code>x86_64</code>) and hit
+<code>Build and then run</code>.  You might need to change bundle identifier if Xcode has problem creating provisioning profile.</p>
+
+<h2 id="how-to-use-it-in-other-projects">How to use it in other projects</h2>
+
+<h3 id="unity-1">Unity</h3>
+
+<p>Copy this <a href="https://github.com/jiulongw/swift-unity/blob/master/XcodePostBuild.cs">post build script</a> to your Unity project&rsquo;s <code>Assets</code> folder.  Put anywhere you like but since this is an
+editor script, Unity requires it to be under a folder named <code>Editor</code>.</p>
+
+<p>Open the script and follow the instructions in the comments.  You need to tell it the path to your Swift project and
+the name of your awesome product.</p>
+
+<pre><code class="language-cs">/// &lt;summary&gt;
+/// Path to the root directory of Xcode project.
+/// This should point to the directory of '${XcodeProjectName}.xcodeproj'.
+/// It is recommended to use relative path here.
+/// Current directory is the root directory of this Unity project, i.e. the directory of 'Assets' folder.
+/// Sample value: &quot;../xcode&quot;
+/// &lt;/summary&gt;
+private const string XcodeProjectRoot = &lt;PROJECT PATH&gt;;
+
+/// &lt;summary&gt;
+/// Name of the Xcode project.
+/// This script looks for '${XcodeProjectName} + &quot;.xcodeproj&quot;' under '${XcodeProjectRoot}'.
+/// Sample value: &quot;DemoApp&quot;
+/// &lt;/summary&gt;
+private const string XcodeProjectName = &lt;PROJECT NAME&gt;;
 </code></pre>
 
-<p>This requires the Unity project to know the location of the Xcode project.  Typically it is a sibling folder in the
-same workspace.</p>
+<p>You&rsquo;re done with Unity part!</p>
 
-<h2 id="xcode-project">Xcode Project</h2>
+<h3 id="xcode-1">Xcode</h3>
 
-<p>In a nutshell, to embed Unity project into Swift project, we need to:</p>
+<p>Xcode side requires a bit more <em>one time</em> effort.</p>
 
 <ol>
-<li>Include Unity generated code in <code>Classes</code> and <code>Libraries</code> folders in Xcode build target.</li>
-<li>Remove <code>main</code> entry point and pass events from <code>AppDelegate</code> to <code>UnityAppController</code>.</li>
-<li>Get Unity GL view and add it as subview to the desired <code>UIViewController</code>.</li>
-<li>Copy <code>Data</code> folder to <code>Product.app</code> after build.</li>
+<li>Copy entire <a href="https://github.com/jiulongw/swift-unity/tree/master/demo/xcode/DemoApp/Unity">Unity</a> folder to the root of your Swift project and add it to Xcode source tree. Make sure all the
+<code>.mm</code> files are added to correct build target.</li>
 </ol>
 
-<h3 id="add-code-to-build-target">Add Code to Build Target</h3>
+<p><img src="https://github.com/jiulongw/swift-unity/raw/master/images/xcode_source_tree.png" alt="Xcode source tree" /></p>
 
-<p>The <code>Classes</code> and <code>Libraries</code> folders need to be compiled into the Xcode project&rsquo;s build target. We&rsquo;re going to make
-changes to some of the generated files.  As a result, as part of the build process, we copy these two folders and
-exclude those unchanged files from source control.</p>
+<ol>
+<li>Add following lines to the .gitignore file in the same directory of your <code>.xcodeproj</code> entry. If you don&rsquo;t have one
+there, create one or merge it to your higher level git ignore file with proper updates to the paths.</li>
+</ol>
 
-<p>Here is a list of files that needs to be modified.</p>
+<pre><code># This file is generated by Unity post build action
+DemoApp/Unity/Exports.xcconfig
 
-<ul>
-<li>Classes/Unity/MetalHelper.mm</li>
-</ul>
+# Files under Libraries will be copied from Unity build during Xcode build
+DemoApp/Unity/Libraries/
 
-<p>Add <code>MTLTextureUsageRenderTarget</code> to the stencil texture descriptor to fix runtime assertion failure.  Not sure if
-  this is a bug in Xcode or Unity but following line fixed the issue.</p>
-
-<pre><code class="language-objc">  stencilTexDesc.usage |= MTLTextureUsageRenderTarget;
+# Files under Classes will be copied from Unity build during Xcode build
+DemoApp/Unity/Classes/
 </code></pre>
 
-<ul>
-<li>Classes/UnityAppController.h</li>
-</ul>
+<ol>
+<li>Select <code>Unity</code> as project configuration file. If you already have your own, merge <code>Unity/Unity.xcconfig</code> to your own.</li>
+</ol>
 
-<p>Because we modified how UnityAppController is created, we need to change the code that retrieves it.</p>
+<p><img src="https://github.com/jiulongw/swift-unity/raw/master/images/unity_configuration_file.png" alt="Unity configuration file" /></p>
 
-<pre><code class="language-objc">  //inline UnityAppController* GetAppController()
-  //{
-  //    return (UnityAppController*)[UIApplication sharedApplication].delegate;
-  //}
+<ol>
+<li><p>If you don&rsquo;t have Objective-C bridging header file, you can skip this.  Otherwise, merge <code>Unity/Bridging-Header.h</code>
+to your own bridging header and comment out following lines in <code>Unity/Unity.xcconfig</code>:</p>
 
-  NS_INLINE UnityAppController* GetAppController()
-  {
-      NSObject&lt;UIApplicationDelegate&gt;* delegate = [UIApplication sharedApplication].delegate;
-      UnityAppController* currentUnityController = (UnityAppController *)[delegate valueForKey:@&quot;currentUnityController&quot;];
-      return currentUnityController;
-  }
-</code></pre>
+<pre><code>SWIFT_OBJC_BRIDGING_HEADER = $(PRODUCT_NAME)/Unity/Bridging-Header.h;
+SWIFT_PRECOMPILE_BRIDGING_HEADER = YES;
+</code></pre></li>
 
-<ul>
-<li>Classes/UnityAppController.mm</li>
-</ul>
-
-<p>Initializing Unity view is asynchronous.  Before it is done we cannot add it to our UIViewController.  To solve this,
-  we issue a notification when Unity view is fully loaded and in our UIViewController, handle the notification and add
-  view accordingly.</p>
-
-<pre><code class="language-objc">  [[NSNotificationCenter defaultCenter] postNotificationName:@&quot;UnityReady&quot; object:self];
-</code></pre>
-
-<ul>
-<li>Classes/main.mm</li>
-</ul>
-
-<p>Here we simply rename <code>main</code> so that it won&rsquo;t conflict with Swift&rsquo;s <code>main</code> entry.</p>
-
-<p>These files are added to source control and skipped by script that copies updates from Unity build.</p>
-
-<h3 id="setup-unityappcontroller">Setup UnityAppController</h3>
-
-<p>Since we renamed <code>main</code> entry in main.mm, UntiyAppController needs to be setup properly to handle app events.
-Sample code can be found in <a href="https://github.com/jiulongw/swift-unity/blob/master/demo/xcode/DemoApp/AppDelegate.swift">AppDelegate.swift</a>.</p>
-
-<p>Note in order to call Objective-C method from Swift code, a <a href="https://developer.apple.com/library/content/documentation/Swift/Conceptual/BuildingCocoaApps/MixandMatch.html">bridging header file</a> needs to be configured in Xcode.</p>
-
-<h3 id="embed-unity-view">Embed Unity View</h3>
-
-<p>Once everything is in place, embedding the Unity view is pretty straightforward.</p>
-
-<pre><code class="language-swift">class ViewController: UIViewController {
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        if let appDelegate = UIApplication.shared.delegate as? AppDelegate {
-            appDelegate.startUnity()
-            NotificationCenter.default.addObserver(
-                self,
-                selector: #selector(handleUnityReady),
-                name: NSNotification.Name(&quot;UnityReady&quot;),
-                object: nil)
-        }
-    }
-
-    @objc func handleUnityReady() {
-        if let unityView = UnityGetGLView() {
-            // insert subview at index 0 ensures unity view is behind current UI view
-            view?.insertSubview(unityView, at: 0)
-        }
-    }
-}
-</code></pre>
-
-<h3 id="build-scripts-to-sync-unity-outputs">Build Scripts to Sync Unity Outputs</h3>
-
-<p>During prebuild, update code generated by Unity.</p>
+<li><p>Add following build scripts to your Xcode build target. You can copy from <code>DemoApp</code> settings. Note the order.</p></li>
+</ol>
 
 <pre><code class="language-sh">echo &quot;Syncing code from $UNITY_IOS_EXPORT_PATH...&quot;
-rsync -rc --exclude-from=DemoApp/Unity/rsync_exclude --delete $UNITY_IOS_EXPORT_PATH/Classes/ DemoApp/Unity/Classes/
-rsync -rc --exclude-from=DemoApp/Unity/rsync_exclude --delete $UNITY_IOS_EXPORT_PATH/Libraries/ DemoApp/Unity/Libraries/
+rsync -rc --exclude-from=$PRODUCT_NAME/Unity/rsync_exclude --delete $UNITY_IOS_EXPORT_PATH/Classes/ $PRODUCT_NAME/Unity/Classes/
+rsync -rc --exclude-from=$PRODUCT_NAME/Unity/rsync_exclude --delete $UNITY_IOS_EXPORT_PATH/Libraries/ $PRODUCT_NAME/Unity/Libraries/
 </code></pre>
 
-<p>During post build, copy <code>Data</code> folder that contains runtime resources.</p>
+<p><img src="https://github.com/jiulongw/swift-unity/raw/master/images/xcode_build_script_1.png" alt="Xcode build script 1" /></p>
 
 <pre><code class="language-sh">echo &quot;Syncing data from $UNITY_IOS_EXPORT_PATH...&quot;
 rm -rf &quot;$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Data&quot;
 cp -Rf &quot;$UNITY_IOS_EXPORT_PATH/Data&quot; &quot;$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Data&quot;
 </code></pre>
 
-<h2 id="known-issues">Known Issues</h2>
+<p><img src="https://github.com/jiulongw/swift-unity/raw/master/images/xcode_build_script_2.png" alt="Xcode build script 2" /></p>
 
-<p>The Xcode project file can be out of sync if you add new plugins to the Unity project.  This is because Xcode explicitly
-list source code files that are added to build target, instead of scanning whole directory for updates.  This can be
-solved by manually add files to Xcode after build (prebuild script will copy all files), or write another post build
-script on Unity side to programmatically add files to Xcode build target.</p>
+<ol>
+<li><p>Update <code>AppDelegate.swift</code> to initialize Unity during application start.  Follow the <a href="https://github.com/jiulongw/swift-unity/blob/master/demo/xcode/DemoApp/AppDelegate.swift">sample AppDelegate code</a>.</p></li>
+
+<li><p>Once Unity is loaded, a <code>UnityReady</code> notification will be triggered. Subscribe to that notification, grab Unity
+view or view controller and present them as you like.  Follow the <a href="https://github.com/jiulongw/swift-unity/blob/master/demo/xcode/DemoApp/ViewController.swift">sample ViewController code</a>.
+```swift
+// Get Unity View
+UnityGetGLView()</p></li>
+</ol>
+
+<p>// Get Unity View Controller
+UnityGetGLViewController()
+```
+Now you should be good to go.  Give it a try!</p>
+
+<p>Note: Building the Unity project for the first time will modify Xcode project file a lot.
+It is safe to commit the change into source control as it only performs necessary updates going forward.</p>
+
+<h2 id="updates">Updates</h2>
+
+<ul>
+<li>12/22/2017 - Support Unity version 2017.3.0f3.</li>
+<li>11/15/2017 - Updated demo focusing on reusability. Updated REAME accordingly.</li>
+<li>11/2/2017 - Support Unity version from 2017.1.1f1 to 2017.2.0f3.</li>
+<li>10/25/2017 - Added FAQ about missing Exports.xcconfig file.</li>
+<li>10/6/2017 - Fix previous known issue that new files generated by Unity are not added to Xcode project automatically.</li>
+<li>9/26/2017 - Initial commit</li>
+</ul>
     </div>
   </div>
 </section>
